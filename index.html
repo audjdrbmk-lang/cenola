@@ -721,15 +721,16 @@ function buildTable(prods,type,gid,allChecked){
     h+=`<td class="col-drag" style="text-align:center;color:var(--text3);cursor:grab;font-size:12px">⠿</td>`;
     h+=`<td class="col-img" style="text-align:center">${p.img?`<img src="${p.img}" class="img-c" onclick="trigImg(${p.id},'${type}',${gid})" title="클릭하여 교체">`:`<div class="img-ph" onclick="trigImg(${p.id},'${type}',${gid})"><span>업로드</span></div>`}</td>`;
     h+=`<td class="col-name"><input type="text" value="${esc(p.name)}" onchange="upN(${p.id},'${type}',${gid},this.value)"></td>`;
-    h+=`<td><input type="number" value="${p.qty||''}" min="1" onchange="upQ(${p.id},'${type}',${gid},this.value)"></td>`;
+    h+=`<td><input type="number" value="${p.qty||''}" min="1" placeholder="0" onchange="upQ(${p.id},'${type}',${gid},this.value)"></td>`;
     menus.forEach(m=>{
       const supId=(p.links||{})[m.id];
       const sup=S.suppliers.find(s=>s.id===supId);
       const supName=sup?sup.co:'';
       const curVal=p.costs[m.id]||0;
       h+=`<td class="split-td"><div class="split-td-inner">`;
-      h+=`<div class="split-top"><input type="number" value="${curVal}" min="0"
-        onfocus="this.dataset.prev=this.value"
+      const dispVal = curVal > 0 ? curVal : '';
+      h+=`<div class="split-top"><input type="number" value="${dispVal}" min="0" placeholder="0"
+        onfocus="this.dataset.prev=this.value;this.dataset.hadval=(this.value!==''&&parseFloat(this.value)>0)?'1':'0'"
         onkeydown="if(event.key==='Escape'){this.value=this.dataset.prev;this.blur()}"
         onblur="confirmPrice(this,${p.id},'${type}',${gid},${m.id})"></div>`;
       h+=`<div class="split-bot${supName?'':' empty'}" onclick="openLink(${p.id},'${type}',${gid},${m.id})">${supName?esc(supName):'연결'}</div>`;
@@ -749,9 +750,16 @@ function buildTable(prods,type,gid,allChecked){
 function confirmPrice(input, pid, type, gid, mid){
   const newVal = parseFloat(input.value)||0;
   const prevVal = parseFloat(input.dataset.prev)||0;
-  if(newVal === prevVal) return; // 변경 없으면 그냥 통과
+  if(newVal === prevVal) return; // 변경 없으면 통과
 
-  // 팝업 표시
+  // 빈칸(0)에서 처음 입력하는 경우 → 팝업 없이 바로 저장
+  const hadVal = input.dataset.hadval === '1';
+  if(!hadVal){
+    upC(pid, type, gid, mid, newVal);
+    return;
+  }
+
+  // 기존값이 있는 경우 → 확인 팝업
   const rect = input.getBoundingClientRect();
   const popup = document.getElementById('price-confirm-popup');
   const fmt2 = n => Math.round(n).toLocaleString('ko-KR')+'원';
@@ -957,7 +965,7 @@ function findProd(id,type,gid){return getList(type,gid).find(p=>p.id===id)}
 
 function addProd(type,gid){
   const id=S.np++;const costs=mkCosts();
-  const p={id,name:'신규 제품',qty:10,img:null,links:{},costs:mkCosts(type==='spec'?'spec':'normal'),buyerRate:130};
+  const p={id,name:'신규 제품',qty:0,img:null,links:{},costs:mkCosts(type==='spec'?'spec':'normal'),buyerRate:130};
   if(type==='normal')S.normalProds.push(p);
   else{const g=S.specGroups.find(g=>g.id===gid);if(g){p.cat=g.cats[0]||'';g.prods.push(p)}}
   scheduleAutoSave();renderTab('cost');
