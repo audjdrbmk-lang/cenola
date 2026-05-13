@@ -329,6 +329,34 @@ tr[draggable]:active { cursor: grabbing; }
   </div>
 </div>
 
+<!-- 내보내기 모달 -->
+<div class="modal-bg" id="exp-modal">
+  <div class="modal" style="width:360px">
+    <h3><i class="fa-solid fa-file-arrow-down" style="color:var(--success);margin-right:6px"></i>내보내기 설정</h3>
+    <div class="fg">
+      <label>바이어명 <span style="font-size:10px;color:var(--text3)">(문서 상단 제목에 표시)</span></label>
+      <input id="exp-buyer-name" type="text" placeholder="예) ABC Trading Co.">
+    </div>
+    <div class="fg">
+      <label>가격 항목 선택</label>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="exp-price-krw" checked style="width:auto;accent-color:var(--accent)">
+          바이어 단가 (VAT 미포함, 원)
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="exp-price-usd" checked style="width:auto;accent-color:var(--accent)">
+          PRICE (USD, ÷1,300)
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeM('exp-modal')">취소</button>
+      <button class="btn btn-primary" onclick="doExport()"><i class="fa-solid fa-download"></i> 내보내기</button>
+    </div>
+  </div>
+</div>
+
 <input type="file" id="img-inp" accept="image/*" style="display:none" onchange="handleImg(event)">
 <div class="loading-overlay" id="loading"><div class="spinner"></div><div class="loading-text" id="loading-text">데이터 불러오는 중...</div></div>
 <div class="toast" id="toast"></div>
@@ -650,6 +678,8 @@ function buildBuyerPage(){
   return h;
 }
 
+const EXCHANGE_RATE = 1300;
+
 function buildBuyerSec(label,prods,type,gid){
   const isS=type==='spec';
   const gidKey=gid===null?'null':gid;
@@ -657,7 +687,10 @@ function buildBuyerSec(label,prods,type,gid){
   const selIds=new Set(selKeys.map(k=>parseInt(k.split('|')[2])));
   const allChecked=prods.length>0&&prods.every(p=>selIds.has(p.id));
   let h=`<div class="section" style="margin-bottom:16px"><div class="sec-head"><div class="sec-title"><span style="font-size:13px;font-weight:600">${esc(label)}</span></div>`;
-  h+=`<button class="btn btn-success btn-sm" onclick="exportXlsx('${type}',${gid})"><i class="fa-solid fa-file-arrow-down"></i> 단가표 내보내기</button></div>`;
+  h+=`<div style="display:flex;gap:6px">`;
+  h+=`<button class="btn btn-success btn-sm" onclick="exportXlsx('${type}',${gid})"><i class="fa-solid fa-file-excel"></i> 엑셀</button>`;
+  h+=`<button class="btn btn-sm" style="background:#2a2926;color:#fff;border-color:transparent" onclick="exportHtml('${type}',${gid})"><i class="fa-solid fa-file-image"></i> 이미지포함</button>`;
+  h+=`</div></div>`;
   h+=`<div class="table-wrap"><table><thead><tr>`;
   h+=`<th style="width:28px"><input type="checkbox" class="row-check" ${allChecked?'checked':''} onchange="toggleAllBuyer('${type}',${gid},this.checked)"></th>`;
   h+=`<th style="width:40px">이미지</th><th style="min-width:80px">제품명</th>`;
@@ -665,11 +698,12 @@ function buildBuyerSec(label,prods,type,gid){
   h+=`<th style="width:46px">입수량</th><th style="min-width:76px;text-align:right">원가합계</th>`;
   h+=`<th style="min-width:100px">마진율(%)</th>`;
   h+=`<th style="min-width:84px;text-align:right">바이어단가<br><span style="font-size:9px;opacity:.6">VAT미포함</span></th>`;
-  h+=`<th style="min-width:84px;text-align:right">바이어단가<br><span style="font-size:9px;opacity:.6">VAT포함</span></th>`;
+  h+=`<th style="min-width:84px;text-align:right">PRICE<br><span style="font-size:9px;opacity:.6">USD (÷${EXCHANGE_RATE})</span></th>`;
   h+=`</tr></thead><tbody>`;
   if(!prods.length){h+=`<tr><td colspan="${isS?9:8}" style="text-align:center;padding:20px;color:var(--text3)">기본 단가표에 제품을 추가하세요</td></tr>`}
   prods.forEach(p=>{
-    const tot=gT(p),rate=parseFloat(p.buyerRate)||100,bp=tot*(rate/100),bv=bp*VAT;
+    const tot=gT(p),rate=parseFloat(p.buyerRate)||100,bp=tot*(rate/100);
+    const usd=(bp/EXCHANGE_RATE).toFixed(2);
     const key=`${type}|${gidKey}|${p.id}`;
     const checked=S.selectedBuyer.has(key);
     h+=`<tr style="${checked?'background:var(--info-bg)':''}">`;
@@ -681,7 +715,7 @@ function buildBuyerSec(label,prods,type,gid){
     h+=`<td class="total-cell">${fmt(tot)}</td>`;
     h+=`<td><input type="number" style="width:56px;text-align:right" value="${rate}" min="0" onchange="upR(${p.id},'${type}',${gid},this.value)"> %</td>`;
     h+=`<td style="text-align:right;font-weight:600;color:var(--success)">${fmt(bp)}</td>`;
-    h+=`<td class="vat-cell">${fmt(bv)}</td>`;
+    h+=`<td style="text-align:right;font-weight:600;color:var(--info)">$${usd}</td>`;
     h+=`</tr>`;
   });
   h+=`</tbody></table></div></div>`;
@@ -833,39 +867,102 @@ function openAddCat(gid){S.editCatGid=gid;document.getElementById('cat-title').t
 function saveCat(){const n=document.getElementById('cat-inp').value.trim();if(!n)return;const g=S.specGroups.find(g=>g.id===S.editCatGid);if(!g)return;g.cats.push(n);scheduleAutoSave();closeM('cat-modal');renderTab('cost')}
 function delCat(gid,idx){const g=S.specGroups.find(g=>g.id===gid);if(!g||g.cats.length<=1)return;const old=g.cats[idx];g.cats.splice(idx,1);g.prods.forEach(p=>{if(p.cat===old)p.cat=g.cats[0]});scheduleAutoSave();renderTab('cost')}
 
-function exportXlsx(type,gid){
+function getExportProds(type,gid){
   const gidKey=gid===null?'null':gid;
   const allProds=getList(type,gid);
   const selKeys=[...S.selectedBuyer].filter(k=>k.startsWith(`${type}|${gidKey}|`));
   const selIds=new Set(selKeys.map(k=>parseInt(k.split('|')[2])));
-  const prods=selIds.size>0?allProds.filter(p=>selIds.has(p.id)):allProds;
-  const isS=type==='spec';
-  const label=type==='normal'?S.normalLabel:(S.specGroups.find(g=>g.id===gid)||{}).label||'특이제품';
-  exportAsHtmlTable(prods, isS, label);
+  return selIds.size>0?allProds.filter(p=>selIds.has(p.id)):allProds;
+}
+function getExportLabel(type,gid){
+  return type==='normal'?S.normalLabel:(S.specGroups.find(g=>g.id===gid)||{}).label||'특이제품';
 }
 
-function exportAsHtmlTable(prods, isS, label){
+// 내보내기 모달 열기
+function exportXlsx(type,gid){ openExportModal(type,gid,'xlsx'); }
+function exportHtml(type,gid){ openExportModal(type,gid,'html'); }
+
+function openExportModal(type,gid,fmt){
+  S._exportType=type; S._exportGid=gid; S._exportFmt=fmt;
+  document.getElementById('exp-buyer-name').value='';
+  document.getElementById('exp-price-krw').checked=true;
+  document.getElementById('exp-price-usd').checked=true;
+  document.getElementById('exp-modal').classList.add('on');
+}
+
+function doExport(){
+  const buyerName=document.getElementById('exp-buyer-name').value.trim();
+  const inclKrw=document.getElementById('exp-price-krw').checked;
+  const inclUsd=document.getElementById('exp-price-usd').checked;
+  const type=S._exportType, gid=S._exportGid, fmt=S._exportFmt;
+  const prods=getExportProds(type,gid);
+  const isS=type==='spec';
+  const label=getExportLabel(type,gid);
+  closeM('exp-modal');
+  if(fmt==='xlsx') doExportXlsx(prods,isS,label,buyerName,inclKrw,inclUsd);
+  else doExportHtml(prods,isS,label,buyerName,inclKrw,inclUsd);
+}
+
+function doExportXlsx(prods,isS,label,buyerName,inclKrw,inclUsd){
+  const wb=XLSX.utils.book_new();
+  const title=`CENOLA 단가표${buyerName?' _ '+buyerName:''}`;
+  // 헤더
+  const baseCols=isS?['제품명','카테고리','입수량']:['제품명','입수량'];
+  if(inclKrw) baseCols.push('바이어단가(VAT미포함,원)');
+  if(inclUsd) baseCols.push('PRICE(USD)');
+  const rows=[[title],[], baseCols];
+  prods.forEach(p=>{
+    const tot=gT(p),rate=parseFloat(p.buyerRate)||100,bp=Math.round(tot*(rate/100));
+    const usd=parseFloat((bp/EXCHANGE_RATE).toFixed(2));
+    const row=isS?[p.name,p.cat||'',p.qty||0]:[p.name,p.qty||0];
+    if(inclKrw) row.push(bp);
+    if(inclUsd) row.push(usd);
+    rows.push(row);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  // 제목 행 병합
+  const mergeEnd=baseCols.length-1;
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:mergeEnd}}];
+  ws['!cols']=baseCols.map((_,i)=>({wch:i===0?24:i===1&&isS?14:14}));
+  // 제목 스타일 (폰트 크기)
+  if(ws['A1']) ws['A1'].s={font:{bold:true,sz:14}};
+  XLSX.utils.book_append_sheet(wb,ws,'바이어단가표');
+  XLSX.writeFile(wb,`${label}_바이어단가표.xlsx`);
+}
+
+function doExportHtml(prods,isS,label,buyerName,inclKrw,inclUsd){
+  exportAsHtmlTable(prods,isS,label,buyerName,inclKrw,inclUsd);
+}
+
+function exportAsHtmlTable(prods, isS, label, buyerName='', inclKrw=true, inclUsd=true){
+  const buyerLabel = buyerName ? buyerName.trim() : '';
   const rows = prods.map(p=>{
     const tot=gT(p), rate=parseFloat(p.buyerRate)||100, bp=Math.round(tot*(rate/100));
     const imgTag = p.img
       ? `<img src="${p.img}" style="width:80px;height:80px;object-fit:cover;border-radius:4px">`
       : '<div style="width:80px;height:80px;background:#f0f0f0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aaa">없음</div>';
-    return {p, tot, bp, imgTag, isS};
+    const usd = '$'+(bp/EXCHANGE_RATE).toFixed(2);
+    return {p, tot, bp, usd, imgTag, isS};
   });
 
-  const headerCols = isS
-    ? ['이미지','제품명','카테고리','입수량','가격(VAT 미포함)']
-    : ['이미지','제품명','입수량','가격(VAT 미포함)'];
+  const baseCols = isS ? ['이미지','제품명','카테고리','입수량'] : ['이미지','제품명','입수량'];
+  if(inclKrw) baseCols.push('가격(VAT 미포함)');
+  if(inclUsd) baseCols.push('PRICE(USD)');
+  const headerCols = baseCols;
 
-  const tableRows = rows.map(({p, bp, imgTag, isS})=>{
-    const cells = isS
-      ? [imgTag, esc(p.name), esc(p.cat||''), p.qty||0, Math.round(bp).toLocaleString('ko-KR')+'원']
-      : [imgTag, esc(p.name), p.qty||0, Math.round(bp).toLocaleString('ko-KR')+'원'];
-    return `<tr>${cells.map((c,i)=>`<td style="padding:10px 12px;border:1px solid #e0e0e0;vertical-align:middle;${i===0?'text-align:center':''}${i===cells.length-1?';font-weight:600;color:#1a7f4b;text-align:right':''}">${c}</td>`).join('')}</tr>`;
+  const tableRows = rows.map(({p, bp, usd, imgTag, isS})=>{
+    const base = isS ? [imgTag, esc(p.name), esc(p.cat||''), p.qty||0] : [imgTag, esc(p.name), p.qty||0];
+    if(inclKrw) base.push(Math.round(bp).toLocaleString('ko-KR')+'원');
+    if(inclUsd) base.push(usd);
+    const cells = base;
+    return `<tr>${cells.map((c,i)=>{
+      let style='padding:10px 12px;border:1px solid #e0e0e0;vertical-align:middle;';
+      if(i===0) style+='text-align:center;';
+      if(inclUsd && i===cells.length-1) style+='font-weight:700;color:#1a5fb4;text-align:right;';
+      else if(inclKrw && i===cells.length-(inclUsd?2:1)) style+='font-weight:600;color:#1a7f4b;text-align:right;';
+      return `<td style="${style}">${c}</td>`;
+    }).join('')}</tr>`;
   }).join('');
-
-  const buyerName = prompt('바이어명을 입력하세요', '');
-  const buyerLabel = buyerName ? buyerName.trim() : '';
 
   const html = `<!DOCTYPE html>
 <html lang="ko">
