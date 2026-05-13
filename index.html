@@ -98,6 +98,14 @@ td { padding: 4px 6px; border-bottom: 1px solid var(--border); border-right: 1px
 td:last-child { border-right: none; }
 tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover td { background: #fafaf8; }
+tbody tr:hover td.col-check,
+tbody tr:hover td.col-drag,
+tbody tr:hover td.col-img,
+tbody tr:hover td.col-name { background: #fafaf8; }
+tbody tr[style*="background:var(--info-bg)"] td.col-check,
+tbody tr[style*="background:var(--info-bg)"] td.col-drag,
+tbody tr[style*="background:var(--info-bg)"] td.col-img,
+tbody tr[style*="background:var(--info-bg)"] td.col-name { background: var(--info-bg); }
 
 /* number input 화살표 제거 */
 input[type=number] { -moz-appearance: textfield; }
@@ -163,6 +171,22 @@ select { width: 100%; font-size: 11px; padding: 3px 5px; border: 1px solid var(-
 /* ── TOAST ── */
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; padding: 9px 20px; border-radius: 20px; font-size: 12px; z-index: 400; opacity: 0; transition: opacity .3s; pointer-events: none; }
 .toast.show { opacity: 1; }
+
+/* ── STICKY COLUMNS (이미지+제품명 고정) ── */
+.col-img  { position: sticky; left: 0; z-index: 5; background: inherit; }
+.col-name { position: sticky; left: 46px; z-index: 5; background: inherit; box-shadow: 2px 0 4px rgba(0,0,0,.06); }
+th.col-img  { position: sticky; left: 0; z-index: 11; background: var(--surface2); }
+th.col-name { position: sticky; left: 46px; z-index: 11; background: var(--surface2); box-shadow: 2px 0 4px rgba(0,0,0,.06); }
+
+/* 체크박스+드래그 컬럼도 sticky */
+.col-check { position: sticky; left: 0; z-index: 5; background: inherit; width: 28px; }
+.col-drag  { position: sticky; left: 28px; z-index: 5; background: inherit; width: 24px; }
+th.col-check { position: sticky; left: 0; z-index: 11; background: var(--surface2); }
+th.col-drag  { position: sticky; left: 28px; z-index: 11; background: var(--surface2); }
+.col-img  { left: 52px; }
+.col-name { left: 98px; box-shadow: 2px 0 5px rgba(0,0,0,.07); }
+th.col-img  { left: 52px; }
+th.col-name { left: 98px; box-shadow: 2px 0 5px rgba(0,0,0,.07); }
 
 /* ── STICKY TABLE HEADER ── */
 .table-wrap {
@@ -671,10 +695,10 @@ function buildTable(prods,type,gid,allChecked){
   const menus=getMenus(type);
   const gidVal=gid===null?'null':gid;
   let h=`<div class="table-wrap"><table><thead><tr>`;
-  h+=`<th style="width:28px"><input type="checkbox" class="row-check" ${allChecked?'checked':''} onchange="toggleAllCost('${type}',${gid},this.checked)"></th>`;
-  h+=`<th style="width:24px"></th>`;
-  h+=`<th style="width:40px">이미지</th>`;
-  h+=`<th style="min-width:80px">제품명</th>`;
+  h+=`<th class="col-check"><input type="checkbox" class="row-check" ${allChecked?'checked':''} onchange="toggleAllCost('${type}',${gid},this.checked)"></th>`;
+  h+=`<th class="col-drag"></th>`;
+  h+=`<th class="col-img" style="width:40px">이미지</th>`;
+  h+=`<th class="col-name" style="min-width:80px">제품명</th>`;
   h+=`<th style="width:46px">입수량</th>`;
   menus.forEach(m=>{
     h+=`<th class="split-th"><div class="split-th-inner"><div class="split-th-top"><span style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px" onclick="openEditMenu(${m.id},'${type}')">${esc(m.n)}</span></div><div class="split-th-bot">업체정보</div></div></th>`;
@@ -693,10 +717,10 @@ function buildTable(prods,type,gid,allChecked){
     const key=`${type}|${gid}|${p.id}`;
     const checked=S.selectedCost.has(key);
     h+=`<tr draggable="true" data-id="${p.id}" data-type="${type}" data-gid="${gidVal}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dragDrop(event)" ondragend="dragEnd(event)" style="${checked?'background:var(--info-bg)':''}">`;
-    h+=`<td style="text-align:center"><input type="checkbox" class="row-check" ${checked?'checked':''} onchange="toggleSelCost(${p.id},'${type}',${gid})"></td>`;
-    h+=`<td style="text-align:center;color:var(--text3);cursor:grab;font-size:12px">⠿</td>`;
-    h+=`<td style="text-align:center">${p.img?`<img src="${p.img}" class="img-c" onclick="trigImg(${p.id},'${type}',${gid})" title="클릭하여 교체">`:`<div class="img-ph" onclick="trigImg(${p.id},'${type}',${gid})"><span>업로드</span></div>`}</td>`;
-    h+=`<td><input type="text" value="${esc(p.name)}" onchange="upN(${p.id},'${type}',${gid},this.value)"></td>`;
+    h+=`<td class="col-check" style="text-align:center"><input type="checkbox" class="row-check" ${checked?'checked':''} onchange="toggleSelCost(${p.id},'${type}',${gid})"></td>`;
+    h+=`<td class="col-drag" style="text-align:center;color:var(--text3);cursor:grab;font-size:12px">⠿</td>`;
+    h+=`<td class="col-img" style="text-align:center">${p.img?`<img src="${p.img}" class="img-c" onclick="trigImg(${p.id},'${type}',${gid})" title="클릭하여 교체">`:`<div class="img-ph" onclick="trigImg(${p.id},'${type}',${gid})"><span>업로드</span></div>`}</td>`;
+    h+=`<td class="col-name"><input type="text" value="${esc(p.name)}" onchange="upN(${p.id},'${type}',${gid},this.value)"></td>`;
     h+=`<td><input type="number" value="${p.qty||''}" min="1" onchange="upQ(${p.id},'${type}',${gid},this.value)"></td>`;
     menus.forEach(m=>{
       const supId=(p.links||{})[m.id];
@@ -802,9 +826,9 @@ function buildBuyerSecAll(label, prods){
   h+=`<button class="btn btn-sm" style="background:#2a2926;color:#fff;border-color:transparent" onclick="exportHtmlAll()"><i class="fa-solid fa-file-image"></i> 이미지포함</button>`;
   h+=`</div></div>`;
   h+=`<div class="table-wrap"><table><thead><tr>`;
-  h+=`<th style="width:28px"><input type="checkbox" class="row-check" ${allChecked?'checked':''} onchange="toggleAllBuyerAll(this.checked)"></th>`;
-  h+=`<th style="width:40px">이미지</th>`;
-  h+=`<th style="min-width:80px">제품명</th>`;
+  h+=`<th class="col-check"><input type="checkbox" class="row-check" ${allChecked?'checked':''} onchange="toggleAllBuyerAll(this.checked)"></th>`;
+  h+=`<th class="col-img" style="width:40px;left:28px">이미지</th>`;
+  h+=`<th class="col-name" style="min-width:80px;left:74px">제품명</th>`;
   h+=`<th style="width:46px">입수량</th>`;
   h+=`<th style="min-width:76px;text-align:right">원가합계</th>`;
   h+=`<th style="min-width:100px">마진율(%)</th>`;
@@ -818,9 +842,9 @@ function buildBuyerSecAll(label, prods){
     const key=`all|all|${p.id}`;
     const checked=S.selectedBuyer.has(key);
     h+=`<tr style="${checked?'background:var(--info-bg)':''}">`;
-    h+=`<td style="text-align:center"><input type="checkbox" class="row-check" ${checked?'checked':''} onchange="toggleSelBuyerAll(${p.id},this.checked)"></td>`;
-    h+=`<td style="text-align:center">${p.img?`<img src="${p.img}" class="img-c" style="cursor:default">`:`<div style="width:38px;height:38px;background:var(--surface2);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text3)">없음</div>`}</td>`;
-    h+=`<td style="font-weight:500">${esc(p.name)}</td>`;
+    h+=`<td class="col-check" style="text-align:center"><input type="checkbox" class="row-check" ${checked?'checked':''} onchange="toggleSelBuyerAll(${p.id},this.checked)"></td>`;
+    h+=`<td class="col-img" style="text-align:center;left:28px">${p.img?`<img src="${p.img}" class="img-c" style="cursor:default">`:`<div style="width:38px;height:38px;background:var(--surface2);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text3)">없음</div>`}</td>`;
+    h+=`<td class="col-name" style="font-weight:500;left:74px">${esc(p.name)}</td>`;
     h+=`<td class="nr">${p.qty||'-'}</td>`;
     h+=`<td class="total-cell">${fmt(tot)}</td>`;
     h+=`<td><input type="number" style="width:56px;text-align:right" value="${rate}" min="0" onchange="upRAll(${p.id},'${p._grp}',${p._gid},this.value)"> %</td>`;
