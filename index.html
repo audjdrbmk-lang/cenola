@@ -165,43 +165,82 @@ select { width: 100%; font-size: 11px; padding: 3px 5px; border: 1px solid var(-
 .toast.show { opacity: 1; }
 
 /* ── STICKY TABLE HEADER ── */
-.table-wrap { overflow-x: auto; position: relative; }
+.table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: calc(100vh - 160px);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+.table-wrap table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
 .table-wrap table thead th {
   position: sticky;
-  top: 103px;
+  top: 0;
   z-index: 10;
   background: var(--surface2);
+  border-bottom: 1px solid var(--border);
   box-shadow: 0 1px 0 var(--border);
 }
-
-/* ── RESPONSIVE ── */
-@media (max-width: 768px) {
-  .main { padding: 8px; }
-  .tabs-wrap { padding: 0 8px; overflow-x: auto; }
-  .header { padding: 0 12px; height: 48px; }
-  .logo { font-size: 14px; }
-  .tab { padding: 9px 10px; font-size: 11px; }
-  .sec-head { padding: 8px 10px; }
-  .section { border-radius: 8px; margin-bottom: 12px; }
-  .btn { padding: 4px 8px; font-size: 10px; }
-  .btn-sm { padding: 3px 6px; font-size: 9px; }
-  table { font-size: 10px; }
-  th { font-size: 9px; padding: 5px 5px; }
-  td { padding: 3px 4px; font-size: 10px; }
-  input[type=number], input[type=text] { font-size: 10px; padding: 2px 4px; }
-  .img-c, .img-ph { width: 32px; height: 32px; }
-  .split-th { min-width: 80px; }
-  .split-th-top { font-size: 9px; padding: 4px 5px; }
-  .split-th-bot { font-size: 8px; padding: 2px 5px; }
-  .split-bot { font-size: 9px; max-width: 80px; }
-  .modal { padding: 14px; }
-  .fg input, .fg select { font-size: 11px; padding: 6px 8px; }
-  .total-cell, .vat-cell { font-size: 10px; }
-  .info-box { font-size: 10px; margin: 8px 10px; }
-  .cat-row { padding: 6px 10px; gap: 4px; }
-  .chip { font-size: 9px; padding: 2px 7px; }
-  .table-wrap table thead th { top: 95px; }
+.table-wrap table thead th.split-th .split-th-inner {
+  background: var(--surface2);
 }
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+  body { font-size: 12px; }
+  .header { padding: 0 12px; height: 46px; }
+  .logo { font-size: 13px; }
+  .sync-status { display: none; }
+  .tabs-wrap { padding: 0 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab { padding: 8px 10px; font-size: 10px; }
+  .main { padding: 8px 6px; }
+  .section { border-radius: 6px; margin-bottom: 10px; }
+  .sec-head { padding: 7px 10px; gap: 6px; }
+  .grp-name-input { font-size: 12px; max-width: 110px; }
+  .badge { font-size: 9px; padding: 1px 7px; }
+  .btn { padding: 4px 8px; font-size: 10px; gap: 3px; }
+  .btn-sm { padding: 3px 6px; font-size: 9px; }
+  .btn-icon { padding: 3px 6px; }
+  table { font-size: 10px; }
+  th { font-size: 9px; padding: 4px 5px; }
+  td { padding: 3px 4px; }
+  input[type=number], input[type=text] { font-size: 10px; padding: 2px 3px; }
+  select { font-size: 10px; padding: 2px 3px; }
+  .img-c, .img-ph { width: 30px; height: 30px; font-size: 7px; }
+  .split-th { min-width: 72px; }
+  .split-th-top { font-size: 9px; padding: 3px 4px; }
+  .split-th-bot { font-size: 8px; padding: 2px 4px; }
+  .split-bot { font-size: 9px; max-width: 72px; padding: 2px 4px; }
+  .total-cell, .vat-cell { font-size: 10px; min-width: 60px; }
+  .add-menu-btn { font-size: 8px; padding: 3px 5px; }
+  .info-box { font-size: 10px; margin: 6px 8px; padding: 6px 10px; }
+  .cat-row { padding: 5px 8px; gap: 4px; }
+  .chip { font-size: 9px; padding: 2px 6px; }
+  .modal { padding: 14px; width: 100%; max-width: 360px; }
+  .modal h3 { font-size: 13px; margin-bottom: 12px; }
+  .fg { margin-bottom: 8px; }
+  .fg label { font-size: 10px; }
+  .fg input, .fg select { font-size: 12px; padding: 6px 8px; }
+  .divider { margin: 10px 0; }
+}
+
+/* ── DRAG & DROP ── */
+.dragging { opacity: .4; background: var(--info-bg) !important; }
+.drag-over { border-top: 2px solid var(--info) !important; }
+tr[draggable] { cursor: grab; }
+tr[draggable]:active { cursor: grabbing; }
+
+/* ── CHECKBOX ── */
+.row-check { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+.bulk-bar { display: none; align-items: center; gap: 8px; padding: 7px 12px; background: var(--info-bg); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.bulk-bar.show { display: flex; }
+.bulk-count { font-size: 11px; color: var(--info); font-weight: 500; }
+
+/* ── SOLD OUT GROUP ── */
+.soldout-badge { font-size: 10px; padding: 2px 9px; border-radius: 20px; background: #f0f0f0; color: #888; }
 </style>
 </head>
 <body>
@@ -219,7 +258,6 @@ select { width: 100%; font-size: 11px; padding: 3px 5px; border: 1px solid var(-
     <button class="btn btn-sm" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)" onclick="saveData()">
       <i class="fa-solid fa-cloud-arrow-up"></i> 저장
     </button>
-
   </div>
 </div>
 
@@ -270,6 +308,9 @@ select { width: 100%; font-size: 11px; padding: 3px 5px; border: 1px solid var(-
     <div class="fg"><label>담당자명</label><input id="s-ct" type="text"></div>
     <div class="fg"><label>연락처</label><input id="s-ph" type="text"></div>
     <div class="fg"><label>이메일</label><input id="s-em" type="text"></div>
+    <div class="fg"><label>담당 부자재 <span style="font-size:10px;color:var(--text3)">(복수 선택 가능)</span></label>
+      <div id="s-menus" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-danger" id="sup-del-btn" onclick="delSup()" style="margin-right:auto;display:none">삭제</button>
       <button class="btn" onclick="closeM('sup-modal')">취소</button>
@@ -292,6 +333,7 @@ select { width: 100%; font-size: 11px; padding: 3px 5px; border: 1px solid var(-
 <div class="loading-overlay" id="loading"><div class="spinner"></div><div class="loading-text" id="loading-text">데이터 불러오는 중...</div></div>
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const API = 'https://script.google.com/macros/s/AKfycby-K1nPMWabAd5US3Ztm1YAywdQXT9P0GlkojQm25KKcYE6xgOaYskYHqnrlfKMPkJu/exec';
 const VAT = 1.1;
@@ -302,16 +344,18 @@ let S = {
   normalLabel: '일반 제품',
   normalProds: [],
   specGroups: [{id:1,label:'특이 제품',cats:['기능성'],prods:[]}],
-  editMenuId: null, editMenuIsNew: false,
-  editSupId: null,
-  linkPid: null, linkType: null, linkGid: null, linkMenuId: null,
-  editCatGid: null,
-  uploadPid: null, uploadType: null, uploadGid: null,
-  nm: 7, np: 1, ng: 2, ns: 0,
-  autoSaveTimer: null
+  soldoutProds: [],
+  editMenuId:null,editMenuIsNew:false,
+  editSupId:null,
+  linkPid:null,linkType:null,linkGid:null,linkMenuId:null,
+  editCatGid:null,
+  uploadPid:null,uploadType:null,uploadGid:null,
+  nm:7,np:1,ng:2,ns:0,
+  selectedCost: new Set(),
+  selectedBuyer: new Set(),
+  dragSrc: null
 };
 
-// ── UTILS ──
 function gT(p){return S.menus.reduce((s,m)=>s+(parseFloat(p.costs[m.id])||0),0)}
 function fmt(n){return Math.round(n).toLocaleString('ko-KR')+'원'}
 function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
@@ -328,137 +372,199 @@ function hideLoading(){document.getElementById('loading').style.display='none'}
 // ── GOOGLE SHEETS SYNC ──
 async function loadData(){
   showLoading('구글 시트에서 불러오는 중...');
-  try {
-    const res = await fetch(API+'?action=load');
-    const json = await res.json();
-    if(json.ok && json.data){
-      parseSheetData(json.data);
-      showToast('데이터를 불러왔습니다');
-    }
-  } catch(e){
-    showToast('불러오기 실패 — 기본값으로 시작합니다');
-  }
-  hideLoading();
-  renderTab('cost');
+  try{
+    const res=await fetch(API+'?action=load');
+    const json=await res.json();
+    if(json.ok&&json.data){parseSheetData(json.data);showToast('데이터를 불러왔습니다')}
+  }catch(e){showToast('불러오기 실패 — 기본값으로 시작합니다')}
+  hideLoading();renderTab('cost');
 }
 
 function parseSheetData(data){
-  // menus
-  if(data.menus && data.menus.length > 1){
-    S.menus = data.menus.slice(1).map(r=>({id:Number(r[0]),n:r[1]||''}));
-    S.nm = Math.max(...S.menus.map(m=>m.id))+1;
+  if(data.menus&&data.menus.length>1){S.menus=data.menus.slice(1).map(r=>({id:Number(r[0]),n:r[1]||''}));S.nm=Math.max(...S.menus.map(m=>m.id))+1;}
+  if(data.suppliers&&data.suppliers.length>1){S.suppliers=data.suppliers.slice(1).map(r=>({id:Number(r[0]),co:r[1]||'',ct:r[2]||'',ph:r[3]||'',em:r[4]||'',menuIds:JSON.parse(r[5]||'[]')}));if(S.suppliers.length)S.ns=Math.max(...S.suppliers.map(s=>s.id))+1;}
+  if(data.config&&data.config.length){const row=data.config.find(r=>r[0]==='normalLabel');if(row)S.normalLabel=row[1]||'일반 제품';}
+  if(data.normalProds&&data.normalProds.length>1){
+    S.normalProds=data.normalProds.slice(1).map(r=>{const costs={};try{const c=JSON.parse(r[3]||'{}');S.menus.forEach(m=>{costs[m.id]=parseFloat(c[m.id])||0});}catch(e){}
+    return{id:Number(r[0]),name:r[1]||'',qty:Number(r[2])||0,img:r[5]||null,costs,links:JSON.parse(r[4]||'{}'),buyerRate:parseFloat(r[6])||130};});
+    if(S.normalProds.length)S.np=Math.max(...S.normalProds.map(p=>p.id))+1;
   }
-  // suppliers
-  if(data.suppliers && data.suppliers.length > 1){
-    S.suppliers = data.suppliers.slice(1).map(r=>({id:Number(r[0]),co:r[1]||'',ct:r[2]||'',ph:r[3]||'',em:r[4]||''}));
-    if(S.suppliers.length) S.ns = Math.max(...S.suppliers.map(s=>s.id))+1;
+  if(data.specGroups&&data.specGroups.length>1){S.specGroups=data.specGroups.slice(1).map(r=>({id:Number(r[0]),label:r[1]||'',cats:JSON.parse(r[2]||'[]'),prods:[]}));if(S.specGroups.length)S.ng=Math.max(...S.specGroups.map(g=>g.id))+1;}
+  if(data.specProds&&data.specProds.length>1){
+    data.specProds.slice(1).forEach(r=>{const gid=Number(r[6]);const g=S.specGroups.find(g=>g.id===gid);if(!g)return;
+    const costs={};try{const c=JSON.parse(r[3]||'{}');S.menus.forEach(m=>{costs[m.id]=parseFloat(c[m.id])||0});}catch(e){}
+    g.prods.push({id:Number(r[0]),name:r[1]||'',qty:Number(r[2])||0,img:r[7]||null,cat:r[8]||'',costs,links:JSON.parse(r[4]||'{}'),buyerRate:parseFloat(r[5])||130});});
+    const allSP=[].concat(...S.specGroups.map(g=>g.prods));if(allSP.length)S.np=Math.max(S.np,...allSP.map(p=>p.id))+1;
   }
-  // config
-  if(data.config && data.config.length){
-    const row = data.config.find(r=>r[0]==='normalLabel');
-    if(row) S.normalLabel = row[1]||'일반 제품';
-  }
-  // normalProds
-  if(data.normalProds && data.normalProds.length > 1){
-    S.normalProds = data.normalProds.slice(1).map(r=>{
-      const costs={};
-      try{ const c=JSON.parse(r[3]||'{}');S.menus.forEach(m=>{costs[m.id]=parseFloat(c[m.id])||0}); }catch(e){}
-      return {id:Number(r[0]),name:r[1]||'',qty:Number(r[2])||0,img:r[5]||null,costs,links:JSON.parse(r[4]||'{}'),buyerRate:parseFloat(r[6])||130};
-    });
-    if(S.normalProds.length) S.np = Math.max(...S.normalProds.map(p=>p.id))+1;
-  }
-  // specGroups + specProds
-  if(data.specGroups && data.specGroups.length > 1){
-    S.specGroups = data.specGroups.slice(1).map(r=>({id:Number(r[0]),label:r[1]||'',cats:JSON.parse(r[2]||'[]'),prods:[]}));
-    if(S.specGroups.length) S.ng = Math.max(...S.specGroups.map(g=>g.id))+1;
-  }
-  if(data.specProds && data.specProds.length > 1){
-    data.specProds.slice(1).forEach(r=>{
-      const gid=Number(r[6]);
-      const g=S.specGroups.find(g=>g.id===gid);
-      if(!g)return;
-      const costs={};
-      try{ const c=JSON.parse(r[3]||'{}');S.menus.forEach(m=>{costs[m.id]=parseFloat(c[m.id])||0}); }catch(e){}
-      g.prods.push({id:Number(r[0]),name:r[1]||'',qty:Number(r[2])||0,img:r[7]||null,cat:r[8]||'',costs,links:JSON.parse(r[4]||'{}'),buyerRate:parseFloat(r[5])||130});
-    });
-    const allSP=[].concat(...S.specGroups.map(g=>g.prods));
-    if(allSP.length) S.np = Math.max(S.np,...allSP.map(p=>p.id))+1;
+  if(data.soldout&&data.soldout.length>1){
+    S.soldoutProds=data.soldout.slice(1).map(r=>{const costs={};try{const c=JSON.parse(r[3]||'{}');S.menus.forEach(m=>{costs[m.id]=parseFloat(c[m.id])||0});}catch(e){}
+    return{id:Number(r[0]),name:r[1]||'',qty:Number(r[2])||0,img:r[5]||null,costs,links:JSON.parse(r[4]||'{}'),buyerRate:parseFloat(r[6])||130};});
   }
 }
 
 function serializeData(){
-  const menusRows = [['id','name'],...S.menus.map(m=>[m.id,m.n])];
-  const supRows = [['id','co','ct','ph','em'],...S.suppliers.map(s=>[s.id,s.co,s.ct,s.ph,s.em])];
-  const nProdRows = [['id','name','qty','costs','links','img','buyerRate'],...S.normalProds.map(p=>[p.id,p.name,p.qty||0,JSON.stringify(p.costs||{}),JSON.stringify(p.links||{}),p.img||'',p.buyerRate||130])];
-  const sgRows = [['id','label','cats'],...S.specGroups.map(g=>[g.id,g.label,JSON.stringify(g.cats||[])])];
-  const spRows = [['id','name','qty','costs','links','buyerRate','gid','img','cat']];
+  const menusRows=[['id','name'],...S.menus.map(m=>[m.id,m.n])];
+  const supRows=[['id','co','ct','ph','em','menuIds'],...S.suppliers.map(s=>[s.id,s.co,s.ct,s.ph,s.em,JSON.stringify(s.menuIds||[])])];
+  const nProdRows=[['id','name','qty','costs','links','img','buyerRate'],...S.normalProds.map(p=>[p.id,p.name,p.qty||0,JSON.stringify(p.costs||{}),JSON.stringify(p.links||{}),p.img||'',p.buyerRate||130])];
+  const sgRows=[['id','label','cats'],...S.specGroups.map(g=>[g.id,g.label,JSON.stringify(g.cats||[])])];
+  const spRows=[['id','name','qty','costs','links','buyerRate','gid','img','cat']];
   S.specGroups.forEach(g=>g.prods.forEach(p=>spRows.push([p.id,p.name,p.qty||0,JSON.stringify(p.costs||{}),JSON.stringify(p.links||{}),p.buyerRate||130,g.id,p.img||'',p.cat||''])));
-  return {menus:menusRows,suppliers:supRows,normalProds:nProdRows,specGroups:sgRows,specProds:spRows,normalLabel:S.normalLabel};
+  const soRows=[['id','name','qty','costs','links','img','buyerRate'],...S.soldoutProds.map(p=>[p.id,p.name,p.qty||0,JSON.stringify(p.costs||{}),JSON.stringify(p.links||{}),p.img||'',p.buyerRate||130])];
+  return{menus:menusRows,suppliers:supRows,normalProds:nProdRows,specGroups:sgRows,specProds:spRows,normalLabel:S.normalLabel,soldout:soRows};
 }
 
-let saveTimeout = null;
-function scheduleAutoSave(){
-  clearTimeout(saveTimeout);
-  setSyncStatus('saving');
-  saveTimeout = setTimeout(()=>saveData(),1500);
-}
-
+let saveTimeout=null;
+function scheduleAutoSave(){clearTimeout(saveTimeout);setSyncStatus('saving');saveTimeout=setTimeout(()=>saveData(),1500)}
 async function saveData(){
   setSyncStatus('saving');
-  try {
-    const payload = {action:'save',data:serializeData()};
-    await fetch(API, {method:'POST',body:JSON.stringify(payload)});
-    setSyncStatus('ok');
-    showToast('저장 완료 ✓');
-  } catch(e){
-    setSyncStatus('error');
-    showToast('저장 실패 — 인터넷 연결 확인');
-  }
+  try{const payload={action:'save',data:serializeData()};await fetch(API,{method:'POST',body:JSON.stringify(payload)});setSyncStatus('ok');showToast('저장 완료 ✓');}
+  catch(e){setSyncStatus('error');showToast('저장 실패 — 인터넷 연결 확인');}
 }
 
-// ── RENDER ──
-function sTab(t, el){
+// ── TABS ──
+function sTab(t,el){
   document.querySelectorAll('.tab').forEach(e=>e.classList.remove('on'));
   document.querySelectorAll('.page').forEach(e=>e.classList.remove('on'));
-  if(el) el.classList.add('on');
+  if(el)el.classList.add('on');
   document.getElementById('pg-'+t).classList.add('on');
   renderTab(t);
 }
 function renderTab(t){
   const el=document.getElementById('pg-'+t);if(!el)return;
-  if(t==='cost') el.innerHTML=buildCostPage();
-  else if(t==='buyer') el.innerHTML=buildBuyerPage();
+  if(t==='cost')el.innerHTML=buildCostPage();
+  else if(t==='buyer')el.innerHTML=buildBuyerPage();
   else el.innerHTML=buildSupPage();
 }
 
+// ── SELECTION HELPERS ──
+function toggleSelCost(id,type,gid){
+  const key=`${type}|${gid}|${id}`;
+  if(S.selectedCost.has(key))S.selectedCost.delete(key);else S.selectedCost.add(key);
+  renderTab('cost');
+}
+function toggleAllCost(type,gid,checked){
+  const prods=getList(type,gid);
+  prods.forEach(p=>{const k=`${type}|${gid}|${p.id}`;if(checked)S.selectedCost.add(k);else S.selectedCost.delete(k);});
+  renderTab('cost');
+}
+function getSelectedProds(type,gid){
+  return getList(type,gid).filter(p=>S.selectedCost.has(`${type}|${gid}|${p.id}`));
+}
+function clearSelCost(){S.selectedCost.clear();}
+
+function bulkDelete(type,gid){
+  const sel=getSelectedProds(type,gid);if(!sel.length)return;
+  if(!confirm(`선택한 ${sel.length}개 제품을 삭제할까요?`))return;
+  sel.forEach(p=>{
+    if(type==='normal')S.normalProds=S.normalProds.filter(x=>x.id!==p.id);
+    else{const g=S.specGroups.find(g=>g.id===gid);if(g)g.prods=g.prods.filter(x=>x.id!==p.id);}
+    S.selectedCost.delete(`${type}|${gid}|${p.id}`);
+  });
+  scheduleAutoSave();renderTab('cost');
+}
+
+function bulkSoldout(type,gid){
+  const sel=getSelectedProds(type,gid);if(!sel.length)return;
+  sel.forEach(p=>{
+    S.soldoutProds.push({...p});
+    if(type==='normal')S.normalProds=S.normalProds.filter(x=>x.id!==p.id);
+    else{const g=S.specGroups.find(g=>g.id===gid);if(g)g.prods=g.prods.filter(x=>x.id!==p.id);}
+    S.selectedCost.delete(`${type}|${gid}|${p.id}`);
+  });
+  scheduleAutoSave();renderTab('cost');
+}
+
+function restoreSoldout(id){
+  const p=S.soldoutProds.find(x=>x.id===id);if(!p)return;
+  S.normalProds.push(p);
+  S.soldoutProds=S.soldoutProds.filter(x=>x.id!==id);
+  scheduleAutoSave();renderTab('cost');
+}
+function delSoldout(id){
+  if(!confirm('품절 제품을 완전히 삭제할까요?'))return;
+  S.soldoutProds=S.soldoutProds.filter(x=>x.id!==id);
+  scheduleAutoSave();renderTab('cost');
+}
+
+// ── COST PAGE ──
 function buildCostPage(){
   let h=buildNormalSec();
   S.specGroups.forEach(g=>{h+=buildSpecSec(g)});
+  h+=buildSoldoutSec();
   h+=`<button class="btn btn-ghost" style="margin:4px 0 8px" onclick="addSpecGroup()"><i class="fa-solid fa-plus"></i> 특이 제품 그룹 추가</button>`;
-  h+=`<div class="info-box"><i class="fa-solid fa-circle-info" style="color:var(--text3)"></i> 이미지 클릭 → 업로드 &nbsp;·&nbsp; 메뉴명 클릭 → 수정 &nbsp;·&nbsp; 업체정보 클릭 → 연결</div>`;
+  h+=`<div class="info-box"><i class="fa-solid fa-circle-info" style="color:var(--text3)"></i> 행 드래그 → 순서 변경 &nbsp;·&nbsp; 이미지 클릭 → 업로드 &nbsp;·&nbsp; 메뉴명 클릭 → 수정</div>`;
   return h;
 }
 
 function buildNormalSec(){
-  return `<div class="section"><div class="sec-head"><div class="sec-title"><input class="grp-name-input" value="${esc(S.normalLabel)}" onchange="S.normalLabel=this.value;scheduleAutoSave()"><span class="badge badge-n">일반</span></div><div class="sec-actions"><button class="btn btn-primary btn-sm" onclick="addProd('normal',null)"><i class="fa-solid fa-plus"></i> 제품 추가</button></div></div>${buildTable(S.normalProds,'normal',null)}</div>`;
-}
-
-function buildSpecSec(g){
-  let h=`<div class="section" style="margin-top:16px"><div class="sec-head"><div class="sec-title"><input class="grp-name-input" value="${esc(g.label)}" onchange="updateGL(${g.id},this.value)"><span class="badge badge-s">특이</span>${S.specGroups.length>1?`<button class="btn btn-danger btn-sm btn-icon" onclick="delSpecGroup(${g.id})" title="그룹 삭제"><i class="fa-solid fa-trash"></i></button>`:''}</div><div class="sec-actions"><button class="btn btn-sm" onclick="openAddCat(${g.id})"><i class="fa-solid fa-folder-plus"></i> 카테고리</button><button class="btn btn-primary btn-sm" onclick="addProd('spec',${g.id})"><i class="fa-solid fa-plus"></i> 제품 추가</button></div></div>`;
-  h+=`<div class="cat-row">`;
-  g.cats.forEach((c,i)=>{h+=`<div class="chip"><span>${esc(c)}</span><span class="chip-x" onclick="delCat(${g.id},${i})"><i class="fa-solid fa-xmark"></i></span></div>`});
-  h+=`<button class="btn btn-ghost btn-sm" onclick="openAddCat(${g.id})"><i class="fa-solid fa-plus"></i></button></div>`;
-  h+=buildTable(g.prods,'spec',g.id);
+  const prods=S.normalProds;
+  const selCount=getSelectedProds('normal',null).length;
+  const allChecked=prods.length>0&&prods.every(p=>S.selectedCost.has(`normal|null|${p.id}`));
+  let h=`<div class="section"><div class="sec-head"><div class="sec-title"><input class="grp-name-input" value="${esc(S.normalLabel)}" onchange="S.normalLabel=this.value;scheduleAutoSave()"><span class="badge badge-n">일반</span></div>`;
+  h+=`<div class="sec-actions"><button class="btn btn-primary btn-sm" onclick="addProd('normal',null)"><i class="fa-solid fa-plus"></i> 제품 추가</button></div></div>`;
+  h+=buildBulkBar('normal',null,selCount);
+  h+=buildTable(prods,'normal',null,allChecked);
   h+=`</div>`;
   return h;
 }
 
-function buildTable(prods,type,gid){
+function buildSpecSec(g){
+  const prods=g.prods;
+  const selCount=getSelectedProds('spec',g.id).length;
+  const allChecked=prods.length>0&&prods.every(p=>S.selectedCost.has(`spec|${g.id}|${p.id}`));
+  let h=`<div class="section" style="margin-top:16px"><div class="sec-head"><div class="sec-title">`;
+  h+=`<input class="grp-name-input" value="${esc(g.label)}" onchange="updateGL(${g.id},this.value)"><span class="badge badge-s">특이</span>`;
+  if(S.specGroups.length>1)h+=`<button class="btn btn-danger btn-sm btn-icon" onclick="delSpecGroup(${g.id})"><i class="fa-solid fa-trash"></i></button>`;
+  h+=`</div><div class="sec-actions"><button class="btn btn-sm" onclick="openAddCat(${g.id})"><i class="fa-solid fa-folder-plus"></i> 카테고리</button><button class="btn btn-primary btn-sm" onclick="addProd('spec',${g.id})"><i class="fa-solid fa-plus"></i> 제품 추가</button></div></div>`;
+  h+=`<div class="cat-row">`;
+  g.cats.forEach((c,i)=>{h+=`<div class="chip"><span>${esc(c)}</span><span class="chip-x" onclick="delCat(${g.id},${i})"><i class="fa-solid fa-xmark"></i></span></div>`});
+  h+=`<button class="btn btn-ghost btn-sm" onclick="openAddCat(${g.id})"><i class="fa-solid fa-plus"></i></button></div>`;
+  h+=buildBulkBar('spec',g.id,selCount);
+  h+=buildTable(prods,'spec',g.id,allChecked);
+  h+=`</div>`;
+  return h;
+}
+
+function buildSoldoutSec(){
+  if(!S.soldoutProds.length)return'';
+  let h=`<div class="section" style="margin-top:16px"><div class="sec-head"><div class="sec-title"><span class="grp-name-input" style="cursor:default">품절 제품</span><span class="soldout-badge">품절</span></div></div>`;
+  h+=`<div class="table-wrap"><table><thead><tr>`;
+  h+=`<th style="width:40px">이미지</th><th style="min-width:80px">제품명</th><th style="min-width:76px;text-align:right">원가합계</th><th style="width:80px"></th></tr></thead><tbody>`;
+  S.soldoutProds.forEach(p=>{
+    const tot=gT(p);
+    h+=`<tr>`;
+    h+=`<td style="text-align:center">${p.img?`<img src="${p.img}" class="img-c" style="cursor:default;opacity:.5">`:`<div style="width:30px;height:30px;background:var(--surface2);border-radius:3px;opacity:.5"></div>`}</td>`;
+    h+=`<td style="color:var(--text3)">${esc(p.name)}</td>`;
+    h+=`<td class="total-cell" style="color:var(--text3)">${fmt(tot)}</td>`;
+    h+=`<td style="display:flex;gap:4px;justify-content:flex-end;padding:4px">`;
+    h+=`<button class="btn btn-sm" onclick="restoreSoldout(${p.id})" title="복원"><i class="fa-solid fa-rotate-left"></i></button>`;
+    h+=`<button class="btn btn-danger btn-sm btn-icon" onclick="delSoldout(${p.id})"><i class="fa-solid fa-trash"></i></button>`;
+    h+=`</td></tr>`;
+  });
+  h+=`</tbody></table></div></div>`;
+  return h;
+}
+
+function buildBulkBar(type,gid,selCount){
+  const gidKey=gid===null?'null':gid;
+  if(!selCount)return`<div class="bulk-bar" id="bulk-${type}-${gidKey}"></div>`;
+  return`<div class="bulk-bar show" id="bulk-${type}-${gidKey}">
+    <span class="bulk-count">${selCount}개 선택됨</span>
+    <button class="btn btn-danger btn-sm" onclick="bulkDelete('${type}',${gid})"><i class="fa-solid fa-trash"></i> 삭제</button>
+    <button class="btn btn-sm" style="background:#ff9800;color:#fff;border-color:transparent" onclick="bulkSoldout('${type}',${gid})"><i class="fa-solid fa-ban"></i> 품절 처리</button>
+    <button class="btn btn-sm" onclick="clearSelCost();renderTab('cost')">취소</button>
+  </div>`;
+}
+
+function buildTable(prods,type,gid,allChecked){
   const isS=type==='spec';
+  const gidVal=gid===null?'null':gid;
   let h=`<div class="table-wrap"><table><thead><tr>`;
-  h+=`<th style="width:46px">이미지</th>`;
+  h+=`<th style="width:28px"><input type="checkbox" class="row-check" ${allChecked?'checked':''} onchange="toggleAllCost('${type}',${gid},this.checked)"></th>`;
+  h+=`<th style="width:24px"></th>`;
+  h+=`<th style="width:40px">이미지</th>`;
   h+=`<th style="min-width:80px">제품명</th>`;
-  if(isS) h+=`<th style="min-width:66px">카테고리</th>`;
+  if(isS)h+=`<th style="min-width:66px">카테고리</th>`;
   h+=`<th style="width:46px">입수량</th>`;
   S.menus.forEach(m=>{
     h+=`<th class="split-th"><div class="split-th-inner"><div class="split-th-top"><span style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px" onclick="openEditMenu(${m.id})">${esc(m.n)}</span></div><div class="split-th-bot">업체정보</div></div></th>`;
@@ -467,20 +573,24 @@ function buildTable(prods,type,gid){
   h+=`<th style="min-width:78px;text-align:right">원가합계</th>`;
   h+=`<th style="min-width:78px;text-align:right">VAT포함</th>`;
   h+=`<th style="width:30px"></th>`;
-  h+=`</tr></thead><tbody>`;
+  h+=`</tr></thead><tbody id="tbody-${type}-${gidVal}">`;
   if(!prods.length){
-    const c=isS?S.menus.length+7:S.menus.length+6;
+    const c=isS?S.menus.length+8:S.menus.length+7;
     h+=`<tr><td colspan="${c}" style="text-align:center;padding:20px;color:var(--text3)">제품을 추가하세요</td></tr>`;
   }
-  prods.forEach(p=>{
+  prods.forEach((p,idx)=>{
     const tot=gT(p),vat=tot*VAT;
-    h+=`<tr>`;
+    const key=`${type}|${gid}|${p.id}`;
+    const checked=S.selectedCost.has(key);
+    h+=`<tr draggable="true" data-id="${p.id}" data-type="${type}" data-gid="${gidVal}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dragDrop(event)" ondragend="dragEnd(event)" style="${checked?'background:var(--info-bg)':''}">`;
+    h+=`<td style="text-align:center"><input type="checkbox" class="row-check" ${checked?'checked':''} onchange="toggleSelCost(${p.id},'${type}',${gid})"></td>`;
+    h+=`<td style="text-align:center;color:var(--text3);cursor:grab;font-size:12px">⠿</td>`;
     h+=`<td style="text-align:center">${p.img?`<img src="${p.img}" class="img-c" onclick="trigImg(${p.id},'${type}',${gid})" title="클릭하여 교체">`:`<div class="img-ph" onclick="trigImg(${p.id},'${type}',${gid})"><span>업로드</span></div>`}</td>`;
     h+=`<td><input type="text" value="${esc(p.name)}" onchange="upN(${p.id},'${type}',${gid},this.value)"></td>`;
     if(isS){
       const grp=S.specGroups.find(g=>g.id===gid);
       h+=`<td><select onchange="upCatP(${p.id},${gid},this.value)">`;
-      if(grp) grp.cats.forEach(c=>{h+=`<option value="${esc(c)}"${p.cat===c?' selected':''}>${esc(c)}</option>`});
+      if(grp)grp.cats.forEach(c=>{h+=`<option value="${esc(c)}"${p.cat===c?' selected':''}>${esc(c)}</option>`});
       h+=`</select></td>`;
     }
     h+=`<td><input type="number" value="${p.qty||''}" min="1" onchange="upQ(${p.id},'${type}',${gid},this.value)"></td>`;
@@ -503,31 +613,70 @@ function buildTable(prods,type,gid){
   return h;
 }
 
+// ── DRAG & DROP ──
+function dragStart(e){
+  S.dragSrc=e.currentTarget;
+  e.dataTransfer.effectAllowed='move';
+  e.currentTarget.classList.add('dragging');
+}
+function dragOver(e){
+  e.preventDefault();e.dataTransfer.dropEffect='move';
+  document.querySelectorAll('tr.drag-over').forEach(r=>r.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+}
+function dragEnd(e){
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('tr.drag-over').forEach(r=>r.classList.remove('drag-over'));
+}
+function dragDrop(e){
+  e.preventDefault();
+  const src=S.dragSrc,tgt=e.currentTarget;
+  if(!src||src===tgt)return;
+  const type=src.dataset.type,gidStr=src.dataset.gid;
+  const gid=gidStr==='null'?null:parseInt(gidStr);
+  const srcId=parseInt(src.dataset.id),tgtId=parseInt(tgt.dataset.id);
+  const list=getList(type,gid);
+  const si=list.findIndex(p=>p.id===srcId),ti=list.findIndex(p=>p.id===tgtId);
+  if(si<0||ti<0)return;
+  const [moved]=list.splice(si,1);list.splice(ti,0,moved);
+  scheduleAutoSave();renderTab('cost');
+}
+
+// ── BUYER PAGE ──
 function buildBuyerPage(){
   let h=buildBuyerSec(S.normalLabel,S.normalProds,'normal',null);
   S.specGroups.forEach(g=>{h+=buildBuyerSec(g.label,g.prods,'spec',g.id)});
-  h+=`<div class="info-box"><i class="fa-solid fa-circle-info" style="color:var(--text3)"></i> 엑셀 내보내기: 제품명 · 입수량 · VAT 미포함 바이어 단가</div>`;
+  h+=`<div class="info-box"><i class="fa-solid fa-circle-info" style="color:var(--text3)"></i> 체크박스로 제품 선택 후 엑셀 내보내기 → 선택한 제품만 출력됩니다</div>`;
   return h;
 }
 
 function buildBuyerSec(label,prods,type,gid){
   const isS=type==='spec';
-  let h=`<div class="section" style="margin-bottom:16px"><div class="sec-head"><div class="sec-title"><span style="font-size:13px;font-weight:600">${esc(label)}</span></div><button class="btn btn-success btn-sm" onclick="exportXlsx('${type}',${gid})"><i class="fa-solid fa-file-excel"></i> 엑셀 내보내기</button></div>`;
+  const gidKey=gid===null?'null':gid;
+  const selKeys=[...S.selectedBuyer].filter(k=>k.startsWith(`${type}|${gidKey}|`));
+  const selIds=new Set(selKeys.map(k=>parseInt(k.split('|')[2])));
+  const allChecked=prods.length>0&&prods.every(p=>selIds.has(p.id));
+  let h=`<div class="section" style="margin-bottom:16px"><div class="sec-head"><div class="sec-title"><span style="font-size:13px;font-weight:600">${esc(label)}</span></div>`;
+  h+=`<button class="btn btn-success btn-sm" onclick="exportXlsx('${type}',${gid})"><i class="fa-solid fa-file-excel"></i> 엑셀 내보내기</button></div>`;
   h+=`<div class="table-wrap"><table><thead><tr>`;
-  h+=`<th style="width:46px">이미지</th><th style="min-width:80px">제품명</th>`;
-  if(isS) h+=`<th style="min-width:66px">카테고리</th>`;
+  h+=`<th style="width:28px"><input type="checkbox" class="row-check" ${allChecked?'checked':''} onchange="toggleAllBuyer('${type}',${gid},this.checked)"></th>`;
+  h+=`<th style="width:40px">이미지</th><th style="min-width:80px">제품명</th>`;
+  if(isS)h+=`<th style="min-width:66px">카테고리</th>`;
   h+=`<th style="width:46px">입수량</th><th style="min-width:76px;text-align:right">원가합계</th>`;
-  h+=`<th style="min-width:100px">마진율(%)<br><span style="font-size:9px;font-weight:400;opacity:.6">예: 130 = 130%</span></th>`;
-  h+=`<th style="min-width:84px;text-align:right">바이어단가<br><span style="font-size:9px;font-weight:400;opacity:.6">VAT미포함</span></th>`;
-  h+=`<th style="min-width:84px;text-align:right">바이어단가<br><span style="font-size:9px;font-weight:400;opacity:.6">VAT포함</span></th>`;
+  h+=`<th style="min-width:100px">마진율(%)</th>`;
+  h+=`<th style="min-width:84px;text-align:right">바이어단가<br><span style="font-size:9px;opacity:.6">VAT미포함</span></th>`;
+  h+=`<th style="min-width:84px;text-align:right">바이어단가<br><span style="font-size:9px;opacity:.6">VAT포함</span></th>`;
   h+=`</tr></thead><tbody>`;
-  if(!prods.length){h+=`<tr><td colspan="${isS?8:7}" style="text-align:center;padding:20px;color:var(--text3)">기본 단가표에 제품을 추가하세요</td></tr>`}
+  if(!prods.length){h+=`<tr><td colspan="${isS?9:8}" style="text-align:center;padding:20px;color:var(--text3)">기본 단가표에 제품을 추가하세요</td></tr>`}
   prods.forEach(p=>{
     const tot=gT(p),rate=parseFloat(p.buyerRate)||100,bp=tot*(rate/100),bv=bp*VAT;
-    h+=`<tr>`;
+    const key=`${type}|${gidKey}|${p.id}`;
+    const checked=S.selectedBuyer.has(key);
+    h+=`<tr style="${checked?'background:var(--info-bg)':''}">`;
+    h+=`<td style="text-align:center"><input type="checkbox" class="row-check" ${checked?'checked':''} onchange="toggleSelBuyer('${type}',${gid},${p.id},this.checked)"></td>`;
     h+=`<td style="text-align:center">${p.img?`<img src="${p.img}" class="img-c" style="cursor:default">`:`<div style="width:38px;height:38px;background:var(--surface2);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text3)">없음</div>`}</td>`;
     h+=`<td style="font-weight:500">${esc(p.name)}</td>`;
-    if(isS) h+=`<td style="font-size:10px;color:var(--text2)">${esc(p.cat)}</td>`;
+    if(isS)h+=`<td style="font-size:10px;color:var(--text2)">${esc(p.cat)}</td>`;
     h+=`<td class="nr">${p.qty||'-'}</td>`;
     h+=`<td class="total-cell">${fmt(tot)}</td>`;
     h+=`<td><input type="number" style="width:56px;text-align:right" value="${rate}" min="0" onchange="upR(${p.id},'${type}',${gid},this.value)"> %</td>`;
@@ -539,45 +688,48 @@ function buildBuyerSec(label,prods,type,gid){
   return h;
 }
 
+function toggleSelBuyer(type,gid,id,checked){
+  const gidKey=gid===null?'null':gid;
+  const key=`${type}|${gidKey}|${id}`;
+  if(checked)S.selectedBuyer.add(key);else S.selectedBuyer.delete(key);
+  renderTab('buyer');
+}
+function toggleAllBuyer(type,gid,checked){
+  const gidKey=gid===null?'null':gid;
+  const prods=getList(type,gid);
+  prods.forEach(p=>{const k=`${type}|${gidKey}|${p.id}`;if(checked)S.selectedBuyer.add(k);else S.selectedBuyer.delete(k);});
+  renderTab('buyer');
+}
+
+// ── SUPPLIER PAGE ──
 function buildSupPage(){
   let h=`<div class="section"><div class="sec-head"><div class="sec-title"><span style="font-size:13px;font-weight:600">업체 목록</span></div><button class="btn btn-primary btn-sm" onclick="openAddSup()"><i class="fa-solid fa-plus"></i> 업체 추가</button></div>`;
-  h+=`<div class="table-wrap"><table><thead><tr><th>업체명</th><th>담당자명</th><th>연락처</th><th>이메일</th><th style="width:50px"></th></tr></thead><tbody>`;
-  if(!S.suppliers.length) h+=`<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text3)">등록된 업체가 없습니다</td></tr>`;
+  h+=`<div class="table-wrap"><table><thead><tr><th>업체명</th><th>담당 부자재</th><th>담당자명</th><th>연락처</th><th>이메일</th><th style="width:50px"></th></tr></thead><tbody>`;
+  if(!S.suppliers.length)h+=`<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3)">등록된 업체가 없습니다</td></tr>`;
   S.suppliers.forEach(s=>{
-    h+=`<tr><td style="font-weight:500">${esc(s.co)}</td><td>${esc(s.ct)||'-'}</td><td>${esc(s.ph)||'-'}</td><td style="font-size:11px">${esc(s.em)||'-'}</td>`;
+    const menuNames=(s.menuIds||[]).map(id=>{const m=S.menus.find(m=>m.id===id);return m?m.n:''}).filter(Boolean).join(', ');
+    h+=`<tr><td style="font-weight:500">${esc(s.co)}</td>`;
+    h+=`<td style="font-size:10px;color:var(--text2)">${menuNames||'-'}</td>`;
+    h+=`<td>${esc(s.ct)||'-'}</td><td>${esc(s.ph)||'-'}</td><td style="font-size:11px">${esc(s.em)||'-'}</td>`;
     h+=`<td><button class="btn btn-icon btn-sm" onclick="openEditSup(${s.id})"><i class="fa-solid fa-pen"></i></button></td></tr>`;
   });
   h+=`</tbody></table></div></div>`;
-
-  // 메뉴별 연결 현황
-  const allP=[...S.normalProds.map(p=>({p,grp:S.normalLabel})),...S.specGroups.flatMap(g=>g.prods.map(p=>({p,grp:g.label})))];
-  if(allP.length){
-    h+=`<div class="section" style="margin-top:16px"><div class="sec-head"><span style="font-size:13px;font-weight:600">메뉴별 업체 연결 현황</span></div>`;
-    h+=`<div class="table-wrap"><table><thead><tr><th>그룹</th><th>제품명</th>`;
-    S.menus.forEach(m=>{h+=`<th>${esc(m.n)}</th>`});
-    h+=`</tr></thead><tbody>`;
-    allP.forEach(({p,grp})=>{
-      h+=`<tr><td style="font-size:10px;color:var(--text2)">${esc(grp)}</td><td style="font-weight:500">${esc(p.name)}</td>`;
-      S.menus.forEach(m=>{const sup=S.suppliers.find(s=>s.id===(p.links||{})[m.id]);h+=`<td style="font-size:10px;color:var(--text2)">${sup?esc(sup.co):'<span style="color:var(--text3)">-</span>'}</td>`});
-      h+=`</tr>`;
-    });
-    h+=`</tbody></table></div></div>`;
-  }
   return h;
 }
 
 // ── ACTIONS ──
-function findProd(id,type,gid){if(type==='normal')return S.normalProds.find(p=>p.id===id);const g=S.specGroups.find(g=>g.id===gid);return g?g.prods.find(p=>p.id===id):null}
+function getList(type,gid){if(type==='normal'||type==='soldout')return type==='normal'?S.normalProds:S.soldoutProds;const g=S.specGroups.find(g=>g.id===gid);return g?g.prods:[];}
+function findProd(id,type,gid){return getList(type,gid).find(p=>p.id===id)}
 
 function addProd(type,gid){
   const id=S.np++;const costs=mkCosts();
   const p={id,name:'신규 제품',qty:10,img:null,links:{},costs,buyerRate:130};
-  if(type==='normal') S.normalProds.push(p);
+  if(type==='normal')S.normalProds.push(p);
   else{const g=S.specGroups.find(g=>g.id===gid);if(g){p.cat=g.cats[0]||'';g.prods.push(p)}}
   scheduleAutoSave();renderTab('cost');
 }
 function delProd(id,type,gid){
-  if(type==='normal') S.normalProds=S.normalProds.filter(p=>p.id!==id);
+  if(type==='normal')S.normalProds=S.normalProds.filter(p=>p.id!==id);
   else{const g=S.specGroups.find(g=>g.id===gid);if(g)g.prods=g.prods.filter(p=>p.id!==id)}
   scheduleAutoSave();renderTab('cost');
 }
@@ -594,10 +746,7 @@ function trigImg(pid,t,gid){S.uploadPid=pid;S.uploadType=t;S.uploadGid=gid;docum
 function handleImg(e){
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
-  r.onload=ev=>{
-    const p=findProd(S.uploadPid,S.uploadType,S.uploadGid);
-    if(p){p.img=ev.target.result;scheduleAutoSave();renderTab('cost')}
-  };
+  r.onload=ev=>{const p=findProd(S.uploadPid,S.uploadType,S.uploadGid);if(p){p.img=ev.target.result;scheduleAutoSave();renderTab('cost')}};
   r.readAsDataURL(f);e.target.value='';
 }
 
@@ -639,12 +788,38 @@ function clearLink(){
   scheduleAutoSave();closeM('link-modal');renderTab('cost');
 }
 
-function openAddSup(){S.editSupId=null;document.getElementById('sup-title').textContent='업체 추가';document.getElementById('sup-del-btn').style.display='none';['s-co','s-ct','s-ph','s-em'].forEach(id=>document.getElementById(id).value='');document.getElementById('sup-modal').classList.add('on')}
-function openEditSup(id){S.editSupId=id;const s=S.suppliers.find(x=>x.id===id);document.getElementById('sup-title').textContent='업체 수정';document.getElementById('sup-del-btn').style.display='inline-flex';document.getElementById('s-co').value=s?s.co:'';document.getElementById('s-ct').value=s?s.ct:'';document.getElementById('s-ph').value=s?s.ph:'';document.getElementById('s-em').value=s?s.em:'';document.getElementById('sup-modal').classList.add('on')}
+function openAddSup(){
+  S.editSupId=null;
+  document.getElementById('sup-title').textContent='업체 추가';
+  document.getElementById('sup-del-btn').style.display='none';
+  ['s-co','s-ct','s-ph','s-em'].forEach(id=>document.getElementById(id).value='');
+  renderMenuCheckboxes([]);
+  document.getElementById('sup-modal').classList.add('on');
+}
+function openEditSup(id){
+  S.editSupId=id;const s=S.suppliers.find(x=>x.id===id);
+  document.getElementById('sup-title').textContent='업체 수정';
+  document.getElementById('sup-del-btn').style.display='inline-flex';
+  document.getElementById('s-co').value=s?s.co:'';
+  document.getElementById('s-ct').value=s?s.ct:'';
+  document.getElementById('s-ph').value=s?s.ph:'';
+  document.getElementById('s-em').value=s?s.em:'';
+  renderMenuCheckboxes(s ? (s.menuIds||[]) : []);
+  document.getElementById('sup-modal').classList.add('on');
+}
+function renderMenuCheckboxes(selected){
+  const wrap=document.getElementById('s-menus');
+  wrap.innerHTML=S.menus.map(m=>`
+    <label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:${selected.includes(m.id)?'var(--accent)':'var(--surface)'};color:${selected.includes(m.id)?'#fff':'var(--text)'}">
+      <input type="checkbox" value="${m.id}" ${selected.includes(m.id)?'checked':''} style="display:none" onchange="this.parentElement.style.background=this.checked?'var(--accent)':'var(--surface)';this.parentElement.style.color=this.checked?'#fff':'var(--text)'">
+      ${esc(m.n)}
+    </label>`).join('');
+}
 function saveSup(){
   const co=document.getElementById('s-co').value.trim();if(!co)return;
-  if(S.editSupId===null) S.suppliers.push({id:S.ns++,co,ct:document.getElementById('s-ct').value.trim(),ph:document.getElementById('s-ph').value.trim(),em:document.getElementById('s-em').value.trim()});
-  else{const s=S.suppliers.find(x=>x.id===S.editSupId);if(s){s.co=co;s.ct=document.getElementById('s-ct').value.trim();s.ph=document.getElementById('s-ph').value.trim();s.em=document.getElementById('s-em').value.trim()}}
+  const menuIds=[...document.querySelectorAll('#s-menus input[type=checkbox]:checked')].map(el=>parseInt(el.value));
+  if(S.editSupId===null)S.suppliers.push({id:S.ns++,co,ct:document.getElementById('s-ct').value.trim(),ph:document.getElementById('s-ph').value.trim(),em:document.getElementById('s-em').value.trim(),menuIds});
+  else{const s=S.suppliers.find(x=>x.id===S.editSupId);if(s){s.co=co;s.ct=document.getElementById('s-ct').value.trim();s.ph=document.getElementById('s-ph').value.trim();s.em=document.getElementById('s-em').value.trim();s.menuIds=menuIds;}}
   scheduleAutoSave();closeM('sup-modal');renderTab('supplier');
 }
 function delSup(){
@@ -659,7 +834,11 @@ function saveCat(){const n=document.getElementById('cat-inp').value.trim();if(!n
 function delCat(gid,idx){const g=S.specGroups.find(g=>g.id===gid);if(!g||g.cats.length<=1)return;const old=g.cats[idx];g.cats.splice(idx,1);g.prods.forEach(p=>{if(p.cat===old)p.cat=g.cats[0]});scheduleAutoSave();renderTab('cost')}
 
 function exportXlsx(type,gid){
-  const prods=type==='normal'?S.normalProds:(S.specGroups.find(g=>g.id===gid)||{prods:[]}).prods;
+  const gidKey=gid===null?'null':gid;
+  const allProds=getList(type,gid);
+  const selKeys=[...S.selectedBuyer].filter(k=>k.startsWith(`${type}|${gidKey}|`));
+  const selIds=new Set(selKeys.map(k=>parseInt(k.split('|')[2])));
+  const prods=selIds.size>0?allProds.filter(p=>selIds.has(p.id)):allProds;
   const isS=type==='spec';
   const label=type==='normal'?S.normalLabel:(S.specGroups.find(g=>g.id===gid)||{}).label||'특이제품';
   const wb=XLSX.utils.book_new();
@@ -676,5 +855,5 @@ function closeM(id){document.getElementById(id).classList.remove('on')}
 loadData();
 </script>
 
-
 </body>
+</html>
