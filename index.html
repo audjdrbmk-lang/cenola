@@ -455,28 +455,37 @@ async function saveData(){
   if(isSaving){ pendingSave=true; return; }
   isSaving=true;
   pendingSave=false;
-  setSyncStatus('saving');
+
+  // 낙관적 업데이트: 요청 즉시 저장됨 표시
+  setSyncStatus('ok');
+  const now = new Date().toLocaleString('ko-KR');
+  document.getElementById('sync-text').textContent = '저장됨 '+now;
+
   try{
-    // CORS 우회: POST 대신 GET + payload 파라미터 사용
     const payload = JSON.stringify({
       action:'save',
       data:serializeData()
     });
     const url = API + '?action=save&payload=' + encodeURIComponent(payload);
-    const res = await fetch(url);
-    const json = await res.json();
-    if(json.ok){
-      setSyncStatus('ok');
-      const t = json.data && json.data.savedAt ? json.data.savedAt : '';
-      document.getElementById('sync-text').textContent = t ? '저장됨 '+t : '저장됨';
+    // 백그라운드 저장 (응답 기다리지 않음)
+    fetch(url).then(res=>res.json()).then(json=>{
+      if(!json.ok){
+        setSyncStatus('error');
+        showToast('⚠️ 저장 실패: '+(json.error||'오류'));
+        setTimeout(()=>saveData(), 5000);
+      } else {
+        const t = json.data && json.data.savedAt ? json.data.savedAt : now;
+        document.getElementById('sync-text').textContent = '저장됨 '+t;
+      }
       if(pendingSave){ pendingSave=false; scheduleAutoSave(); }
-    } else {
-      throw new Error(json.error || '저장 실패');
-    }
+    }).catch(e=>{
+      setSyncStatus('error');
+      showToast('⚠️ 저장 실패: '+e.message);
+      setTimeout(()=>saveData(), 5000);
+    });
   } catch(e){
     setSyncStatus('error');
     showToast('⚠️ 저장 실패: '+e.message);
-    setTimeout(()=>saveData(), 5000);
   } finally {
     isSaving=false;
   }
