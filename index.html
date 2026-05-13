@@ -442,12 +442,58 @@ function serializeData(){
 }
 
 let saveTimeout=null;
-function scheduleAutoSave(){clearTimeout(saveTimeout);setSyncStatus('saving');saveTimeout=setTimeout(()=>saveData(),1500)}
-async function saveData(){
+let isSaving=false;
+let pendingSave=false;
+
+function scheduleAutoSave(){
+  clearTimeout(saveTimeout);
   setSyncStatus('saving');
-  try{const payload={action:'save',data:serializeData()};await fetch(API,{method:'POST',body:JSON.stringify(payload)});setSyncStatus('ok');showToast('저장 완료 ✓');}
-  catch(e){setSyncStatus('error');showToast('저장 실패 — 인터넷 연결 확인');}
+  saveTimeout=setTimeout(()=>saveData(),2000); // 2초로 여유 증가
 }
+
+async function saveData(){
+  if(isSaving){ pendingSave=true; return; } // 저장 중이면 대기 표시
+  isSaving=true;
+  pendingSave=false;
+  setSyncStatus('saving');
+  try{
+    const payload={
+      action:'save',
+      data:serializeData(),
+      savedBy: navigator.userAgent.substring(0,50) // 어떤 기기에서 저장했는지
+    };
+    const res = await fetch(API,{
+      method:'POST',
+      body:JSON.stringify(payload),
+      headers:{'Content-Type':'application/json'}
+    });
+    const json = await res.json();
+    if(json.ok){
+      setSyncStatus('ok');
+      const t = json.data && json.data.savedAt ? json.data.savedAt : '';
+      document.getElementById('sync-text').textContent = t ? '저장됨 '+t : '저장됨';
+      if(pendingSave){ pendingSave=false; scheduleAutoSave(); } // 대기 중이던 저장 처리
+    } else {
+      throw new Error(json.error || '저장 실패');
+    }
+  } catch(e){
+    setSyncStatus('error');
+    showToast('⚠️ 저장 실패: '+e.message);
+    // 실패 시 5초 후 재시도
+    setTimeout(()=>saveData(), 5000);
+  } finally {
+    isSaving=false;
+  }
+}
+
+// 페이지 닫기 전 저장 완료 확인
+window.addEventListener('beforeunload', function(e){
+  if(isSaving || saveTimeout){
+    e.preventDefault();
+    e.returnValue='저장 중입니다. 페이지를 닫으면 데이터가 손실될 수 있습니다.';
+    return e.returnValue;
+  }
+});
 
 // ── TABS ──
 function sTab(t,el){
@@ -779,9 +825,27 @@ function delSpecGroup(gid){if(S.specGroups.length<=1)return;S.specGroups=S.specG
 function trigImg(pid,t,gid){S.uploadPid=pid;S.uploadType=t;S.uploadGid=gid;document.getElementById('img-inp').click()}
 function handleImg(e){
   const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=ev=>{const p=findProd(S.uploadPid,S.uploadType,S.uploadGid);if(p){p.img=ev.target.result;scheduleAutoSave();renderTab('cost')}};
-  r.readAsDataURL(f);e.target.value='';
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    // 이미지 압축 (500×500 이하, 품질 0.7)
+    const img=new Image();
+    img.onload=()=>{
+      const MAX=500;
+      const canvas=document.createElement('canvas');
+      let w=img.width, h=img.height;
+      if(w>MAX||h>MAX){
+        if(w>h){h=Math.round(h*MAX/w);w=MAX;}
+        else{w=Math.round(w*MAX/h);h=MAX;}
+      }
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const compressed=canvas.toDataURL('image/jpeg',0.72);
+      const p=findProd(S.uploadPid,S.uploadType,S.uploadGid);
+      if(p){p.img=compressed;scheduleAutoSave();renderTab('cost')}
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(f);e.target.value='';
 }
 
 function openAddMenu(){S.editMenuId=null;S.editMenuIsNew=true;document.getElementById('mm-title').textContent='메뉴 추가';document.getElementById('menu-inp').value='';document.getElementById('menu-del-btn').style.display='none';document.getElementById('menu-modal').classList.add('on')}
