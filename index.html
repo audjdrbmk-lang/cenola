@@ -723,11 +723,78 @@ function dragDrop(e){
 
 // ── BUYER PAGE ──
 function buildBuyerPage(){
-  let h=buildBuyerSec(S.normalLabel,S.normalProds,'normal',null);
-  S.specGroups.forEach(g=>{h+=buildBuyerSec(g.label,g.prods,'spec',g.id)});
-  h+=`<div class="info-box"><i class="fa-solid fa-circle-info" style="color:var(--text3)"></i> 체크박스로 제품 선택 후 엑셀 내보내기 → 선택한 제품만 출력됩니다</div>`;
+  // 일반 + 특이 전체 합치기
+  const allProds = [
+    ...S.normalProds.map(p=>({...p, _grp:'normal', _gid:null})),
+    ...S.specGroups.flatMap(g=>g.prods.map(p=>({...p, _grp:'spec', _gid:g.id})))
+  ];
+  let h = buildBuyerSecAll('제품 리스트', allProds);
+  h+=`<div class="info-box"><i class="fa-solid fa-circle-info" style="color:var(--text3)"></i> 체크박스로 제품 선택 후 엑셀/이미지포함 내보내기 → 선택한 제품만 출력됩니다</div>`;
   return h;
 }
+
+function buildBuyerSecAll(label, prods){
+  const gidKey='all';
+  const selKeys=[...S.selectedBuyer].filter(k=>k.startsWith(`all|`));
+  const selIds=new Set(selKeys.map(k=>parseInt(k.split('|')[2])));
+  const allChecked=prods.length>0&&prods.every(p=>selIds.has(p.id));
+  let h=`<div class="section" style="margin-bottom:16px"><div class="sec-head"><div class="sec-title"><span style="font-size:13px;font-weight:600">${esc(label)}</span></div>`;
+  h+=`<div style="display:flex;gap:6px">`;
+  h+=`<button class="btn btn-success btn-sm" onclick="exportXlsxAll()"><i class="fa-solid fa-file-excel"></i> 엑셀</button>`;
+  h+=`<button class="btn btn-sm" style="background:#2a2926;color:#fff;border-color:transparent" onclick="exportHtmlAll()"><i class="fa-solid fa-file-image"></i> 이미지포함</button>`;
+  h+=`</div></div>`;
+  h+=`<div class="table-wrap"><table><thead><tr>`;
+  h+=`<th style="width:28px"><input type="checkbox" class="row-check" ${allChecked?'checked':''} onchange="toggleAllBuyerAll(this.checked)"></th>`;
+  h+=`<th style="width:40px">이미지</th>`;
+  h+=`<th style="min-width:80px">제품명</th>`;
+  h+=`<th style="width:46px">입수량</th>`;
+  h+=`<th style="min-width:76px;text-align:right">원가합계</th>`;
+  h+=`<th style="min-width:100px">마진율(%)</th>`;
+  h+=`<th style="min-width:84px;text-align:right">바이어단가<br><span style="font-size:9px;opacity:.6">VAT미포함</span></th>`;
+  h+=`<th style="min-width:84px;text-align:right">PRICE<br><span style="font-size:9px;opacity:.6">USD (÷${EXCHANGE_RATE})</span></th>`;
+  h+=`</tr></thead><tbody>`;
+  if(!prods.length){h+=`<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">기본 단가표에 제품을 추가하세요</td></tr>`}
+  prods.forEach(p=>{
+    const tot=gT(p),rate=parseFloat(p.buyerRate)||100,bp=tot*(rate/100);
+    const usd=(bp/EXCHANGE_RATE).toFixed(2);
+    const key=`all|all|${p.id}`;
+    const checked=S.selectedBuyer.has(key);
+    h+=`<tr style="${checked?'background:var(--info-bg)':''}">`;
+    h+=`<td style="text-align:center"><input type="checkbox" class="row-check" ${checked?'checked':''} onchange="toggleSelBuyerAll(${p.id},this.checked)"></td>`;
+    h+=`<td style="text-align:center">${p.img?`<img src="${p.img}" class="img-c" style="cursor:default">`:`<div style="width:38px;height:38px;background:var(--surface2);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text3)">없음</div>`}</td>`;
+    h+=`<td style="font-weight:500">${esc(p.name)}</td>`;
+    h+=`<td class="nr">${p.qty||'-'}</td>`;
+    h+=`<td class="total-cell">${fmt(tot)}</td>`;
+    h+=`<td><input type="number" style="width:56px;text-align:right" value="${rate}" min="0" onchange="upRAll(${p.id},'${p._grp}',${p._gid},this.value)"> %</td>`;
+    h+=`<td style="text-align:right;font-weight:600;color:var(--success)">${fmt(bp)}</td>`;
+    h+=`<td style="text-align:right;font-weight:600;color:var(--info)">$${usd}</td>`;
+    h+=`</tr>`;
+  });
+  h+=`</tbody></table></div></div>`;
+  return h;
+}
+
+function toggleSelBuyerAll(id,checked){
+  const key=`all|all|${id}`;
+  if(checked)S.selectedBuyer.add(key);else S.selectedBuyer.delete(key);
+  renderTab('buyer');
+}
+function toggleAllBuyerAll(checked){
+  const allProds=[...S.normalProds,...S.specGroups.flatMap(g=>g.prods)];
+  allProds.forEach(p=>{const k=`all|all|${p.id}`;if(checked)S.selectedBuyer.add(k);else S.selectedBuyer.delete(k);});
+  renderTab('buyer');
+}
+function upRAll(pid,type,gid,v){
+  const p=findProd(pid,type,gid);
+  if(p){p.buyerRate=parseFloat(v)||100;scheduleAutoSave();renderTab('buyer');}
+}
+function getExportProdsAll(){
+  const allProds=[...S.normalProds,...S.specGroups.flatMap(g=>g.prods)];
+  const selIds=new Set([...S.selectedBuyer].filter(k=>k.startsWith('all|')).map(k=>parseInt(k.split('|')[2])));
+  return selIds.size>0?allProds.filter(p=>selIds.has(p.id)):allProds;
+}
+function exportXlsxAll(){ openExportModal('all',null,'xlsx'); }
+function exportHtmlAll(){ openExportModal('all',null,'html'); }
 
 const EXCHANGE_RATE = 1300;
 
@@ -953,6 +1020,7 @@ function exportHtml(type,gid){ openExportModal(type,gid,'html'); }
 
 function openExportModal(type,gid,fmt){
   S._exportType=type; S._exportGid=gid; S._exportFmt=fmt;
+  S._exportIsAll=(type==='all');
   document.getElementById('exp-buyer-name').value='';
   document.getElementById('exp-price-krw').checked=true;
   document.getElementById('exp-price-usd').checked=true;
@@ -964,9 +1032,10 @@ function doExport(){
   const inclKrw=document.getElementById('exp-price-krw').checked;
   const inclUsd=document.getElementById('exp-price-usd').checked;
   const type=S._exportType, gid=S._exportGid, fmt=S._exportFmt;
-  const prods=getExportProds(type,gid);
-  const isS=type==='spec';
-  const label=getExportLabel(type,gid);
+  const isAll=S._exportIsAll;
+  const prods=isAll?getExportProdsAll():getExportProds(type,gid);
+  const isS=!isAll&&type==='spec';
+  const label=isAll?'제품 리스트':getExportLabel(type,gid);
   closeM('exp-modal');
   if(fmt==='xlsx') doExportXlsx(prods,isS,label,buyerName,inclKrw,inclUsd);
   else doExportHtml(prods,isS,label,buyerName,inclKrw,inclUsd);
