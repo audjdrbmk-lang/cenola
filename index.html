@@ -227,6 +227,27 @@ select { width: 100%; font-size: 11px; padding: 3px 5px; border: 1px solid var(-
   .divider { margin: 10px 0; }
 }
 
+/* ── PRICE CONFIRM POPUP ── */
+#price-confirm-popup {
+  display:none;
+  position:absolute;
+  z-index:300;
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:8px;
+  box-shadow:var(--shadow-md);
+  padding:10px 14px;
+  flex-direction:column;
+  gap:8px;
+  min-width:180px;
+  font-size:12px;
+}
+.pc-row { display:flex; align-items:center; gap:6px; }
+.pc-label { color:var(--text3); font-size:10px; width:28px; }
+.pc-val { font-weight:500; }
+.pc-val.new { color:var(--success); }
+.pc-btns { display:flex; gap:6px; margin-top:2px; }
+
 /* ── DRAG & DROP ── */
 .dragging { opacity: .4; background: var(--info-bg) !important; }
 .drag-over { border-top: 2px solid var(--info) !important; }
@@ -357,6 +378,16 @@ tr[draggable]:active { cursor: grabbing; }
   </div>
 </div>
 
+<!-- 가격 확인 팝업 -->
+<div id="price-confirm-popup">
+  <div class="pc-row"><span class="pc-label">기존</span><span class="pc-val" id="pc-prev"></span></div>
+  <div class="pc-row"><span class="pc-label">변경</span><span class="pc-val new" id="pc-new"></span></div>
+  <div class="pc-btns">
+    <button class="btn btn-primary btn-sm" onclick="pcConfirm()"><i class="fa-solid fa-check"></i> 저장</button>
+    <button class="btn btn-sm" onclick="pcCancel()"><i class="fa-solid fa-xmark"></i> 취소</button>
+  </div>
+</div>
+
 <input type="file" id="img-inp" accept="image/*" style="display:none" onchange="handleImg(event)">
 <div class="loading-overlay" id="loading"><div class="spinner"></div><div class="loading-text" id="loading-text">데이터 불러오는 중...</div></div>
 <div class="toast" id="toast"></div>
@@ -367,13 +398,16 @@ const API = 'https://script.google.com/macros/s/AKfycbzDYovNw5AZ971IjzfvwLqfdjue
 const VAT = 1.1;
 
 let S = {
-  menus: [{id:0,n:'용기'},{id:1,n:'단상자'},{id:2,n:'봉합라벨'},{id:3,n:'아웃박스'},{id:4,n:'내용물'},{id:5,n:'임가공비'},{id:6,n:'기타'}],
+  normalMenus: [{id:0,n:'용기'},{id:1,n:'단상자'},{id:2,n:'봉합라벨'},{id:3,n:'아웃박스'},{id:4,n:'내용물'},{id:5,n:'임가공비'},{id:6,n:'기타'}],
+  specMenus:   [{id:0,n:'용기'},{id:1,n:'단상자'},{id:2,n:'봉합라벨'},{id:3,n:'아웃박스'},{id:4,n:'내용물'},{id:5,n:'임가공비'},{id:6,n:'기타'}],
+  get menus(){ return this._menuTarget==='spec' ? this.specMenus : this.normalMenus; },
+  _menuTarget: 'normal',
   suppliers: [],
   normalLabel: '일반 제품',
   normalProds: [],
-  specGroups: [{id:1,label:'특이 제품',cats:['기능성'],prods:[]}],
+  specGroups: [{id:1,label:'특이 제품',cats:[],prods:[]}],
   soldoutProds: [],
-  editMenuId:null,editMenuIsNew:false,
+  editMenuId:null,editMenuIsNew:false,editMenuTarget:'normal',
   editSupId:null,
   linkPid:null,linkType:null,linkGid:null,linkMenuId:null,
   editCatGid:null,
@@ -384,10 +418,11 @@ let S = {
   dragSrc: null
 };
 
-function gT(p){return S.menus.reduce((s,m)=>s+(parseFloat(p.costs[m.id])||0),0)}
+function getMenus(type){ return type==='spec' ? S.specMenus : S.normalMenus; }
+function gT(p,type='normal'){ return getMenus(type).reduce((s,m)=>s+(parseFloat(p.costs[m.id])||0),0); }
 function fmt(n){return Math.round(n).toLocaleString('ko-KR')+'원'}
 function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
-function mkCosts(){const c={};S.menus.forEach(m=>c[m.id]=0);return c}
+function mkCosts(type='normal'){const c={};getMenus(type).forEach(m=>c[m.id]=0);return c}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
 function setSyncStatus(state){
   const dot=document.getElementById('sync-dot'),txt=document.getElementById('sync-text');
@@ -594,10 +629,7 @@ function buildSpecSec(g){
   let h=`<div class="section" style="margin-top:16px"><div class="sec-head"><div class="sec-title">`;
   h+=`<input class="grp-name-input" value="${esc(g.label)}" onchange="updateGL(${g.id},this.value)"><span class="badge badge-s">특이</span>`;
   if(S.specGroups.length>1)h+=`<button class="btn btn-danger btn-sm btn-icon" onclick="delSpecGroup(${g.id})"><i class="fa-solid fa-trash"></i></button>`;
-  h+=`</div><div class="sec-actions"><button class="btn btn-sm" onclick="openAddCat(${g.id})"><i class="fa-solid fa-folder-plus"></i> 카테고리</button><button class="btn btn-primary btn-sm" onclick="addProd('spec',${g.id})"><i class="fa-solid fa-plus"></i> 제품 추가</button></div></div>`;
-  h+=`<div class="cat-row">`;
-  g.cats.forEach((c,i)=>{h+=`<div class="chip"><span>${esc(c)}</span><span class="chip-x" onclick="delCat(${g.id},${i})"><i class="fa-solid fa-xmark"></i></span></div>`});
-  h+=`<button class="btn btn-ghost btn-sm" onclick="openAddCat(${g.id})"><i class="fa-solid fa-plus"></i></button></div>`;
+  h+=`</div><div class="sec-actions"><button class="btn btn-primary btn-sm" onclick="addProd('spec',${g.id})"><i class="fa-solid fa-plus"></i> 제품 추가</button></div></div>`;
   h+=buildBulkBar('spec',g.id,selCount);
   h+=buildTable(prods,'spec',g.id,allChecked);
   h+=`</div>`;
@@ -636,29 +668,28 @@ function buildBulkBar(type,gid,selCount){
 }
 
 function buildTable(prods,type,gid,allChecked){
-  const isS=type==='spec';
+  const menus=getMenus(type);
   const gidVal=gid===null?'null':gid;
   let h=`<div class="table-wrap"><table><thead><tr>`;
   h+=`<th style="width:28px"><input type="checkbox" class="row-check" ${allChecked?'checked':''} onchange="toggleAllCost('${type}',${gid},this.checked)"></th>`;
   h+=`<th style="width:24px"></th>`;
   h+=`<th style="width:40px">이미지</th>`;
   h+=`<th style="min-width:80px">제품명</th>`;
-  if(isS)h+=`<th style="min-width:66px">카테고리</th>`;
   h+=`<th style="width:46px">입수량</th>`;
-  S.menus.forEach(m=>{
-    h+=`<th class="split-th"><div class="split-th-inner"><div class="split-th-top"><span style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px" onclick="openEditMenu(${m.id})">${esc(m.n)}</span></div><div class="split-th-bot">업체정보</div></div></th>`;
+  menus.forEach(m=>{
+    h+=`<th class="split-th"><div class="split-th-inner"><div class="split-th-top"><span style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px" onclick="openEditMenu(${m.id},'${type}')">${esc(m.n)}</span></div><div class="split-th-bot">업체정보</div></div></th>`;
   });
-  h+=`<th class="add-menu-th"><button class="add-menu-btn" onclick="openAddMenu()"><i class="fa-solid fa-plus"></i> 메뉴</button></th>`;
+  h+=`<th class="add-menu-th"><button class="add-menu-btn" onclick="openAddMenu('${type}')"><i class="fa-solid fa-plus"></i> 메뉴</button></th>`;
   h+=`<th style="min-width:78px;text-align:right">원가합계</th>`;
   h+=`<th style="min-width:78px;text-align:right">VAT포함</th>`;
   h+=`<th style="width:30px"></th>`;
   h+=`</tr></thead><tbody id="tbody-${type}-${gidVal}">`;
   if(!prods.length){
-    const c=isS?S.menus.length+8:S.menus.length+7;
+    const c=menus.length+7;
     h+=`<tr><td colspan="${c}" style="text-align:center;padding:20px;color:var(--text3)">제품을 추가하세요</td></tr>`;
   }
-  prods.forEach((p,idx)=>{
-    const tot=gT(p),vat=tot*VAT;
+  prods.forEach(p=>{
+    const tot=gT(p,type),vat=tot*VAT;
     const key=`${type}|${gid}|${p.id}`;
     const checked=S.selectedCost.has(key);
     h+=`<tr draggable="true" data-id="${p.id}" data-type="${type}" data-gid="${gidVal}" ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dragDrop(event)" ondragend="dragEnd(event)" style="${checked?'background:var(--info-bg)':''}">`;
@@ -666,19 +697,17 @@ function buildTable(prods,type,gid,allChecked){
     h+=`<td style="text-align:center;color:var(--text3);cursor:grab;font-size:12px">⠿</td>`;
     h+=`<td style="text-align:center">${p.img?`<img src="${p.img}" class="img-c" onclick="trigImg(${p.id},'${type}',${gid})" title="클릭하여 교체">`:`<div class="img-ph" onclick="trigImg(${p.id},'${type}',${gid})"><span>업로드</span></div>`}</td>`;
     h+=`<td><input type="text" value="${esc(p.name)}" onchange="upN(${p.id},'${type}',${gid},this.value)"></td>`;
-    if(isS){
-      const grp=S.specGroups.find(g=>g.id===gid);
-      h+=`<td><select onchange="upCatP(${p.id},${gid},this.value)">`;
-      if(grp)grp.cats.forEach(c=>{h+=`<option value="${esc(c)}"${p.cat===c?' selected':''}>${esc(c)}</option>`});
-      h+=`</select></td>`;
-    }
     h+=`<td><input type="number" value="${p.qty||''}" min="1" onchange="upQ(${p.id},'${type}',${gid},this.value)"></td>`;
-    S.menus.forEach(m=>{
+    menus.forEach(m=>{
       const supId=(p.links||{})[m.id];
       const sup=S.suppliers.find(s=>s.id===supId);
       const supName=sup?sup.co:'';
+      const curVal=p.costs[m.id]||0;
       h+=`<td class="split-td"><div class="split-td-inner">`;
-      h+=`<div class="split-top"><input type="number" value="${p.costs[m.id]||0}" min="0" onchange="upC(${p.id},'${type}',${gid},${m.id},this.value)"></div>`;
+      h+=`<div class="split-top"><input type="number" value="${curVal}" min="0"
+        onfocus="this.dataset.prev=this.value"
+        onkeydown="if(event.key==='Escape'){this.value=this.dataset.prev;this.blur()}"
+        onblur="confirmPrice(this,${p.id},'${type}',${gid},${m.id})"></div>`;
       h+=`<div class="split-bot${supName?'':' empty'}" onclick="openLink(${p.id},'${type}',${gid},${m.id})">${supName?esc(supName):'연결'}</div>`;
       h+=`</div></td>`;
     });
@@ -690,6 +719,35 @@ function buildTable(prods,type,gid,allChecked){
   });
   h+=`</tbody></table></div>`;
   return h;
+}
+
+// 가격 입력 확인 팝업
+function confirmPrice(input, pid, type, gid, mid){
+  const newVal = parseFloat(input.value)||0;
+  const prevVal = parseFloat(input.dataset.prev)||0;
+  if(newVal === prevVal) return; // 변경 없으면 그냥 통과
+
+  // 팝업 표시
+  const rect = input.getBoundingClientRect();
+  const popup = document.getElementById('price-confirm-popup');
+  const fmt2 = n => Math.round(n).toLocaleString('ko-KR')+'원';
+  document.getElementById('pc-prev').textContent = fmt2(prevVal);
+  document.getElementById('pc-new').textContent = fmt2(newVal);
+  popup.style.display='flex';
+  popup.style.top = (rect.bottom + window.scrollY + 6)+'px';
+  popup.style.left = Math.max(4, rect.left + window.scrollX - 40)+'px';
+  popup._pid=pid; popup._type=type; popup._gid=gid; popup._mid=mid;
+  popup._input=input; popup._prev=prevVal; popup._new=newVal;
+}
+function pcConfirm(){
+  const pop=document.getElementById('price-confirm-popup');
+  upC(pop._pid,pop._type,pop._gid,pop._mid,pop._new);
+  pop.style.display='none';
+}
+function pcCancel(){
+  const pop=document.getElementById('price-confirm-popup');
+  pop._input.value=pop._prev;
+  pop.style.display='none';
 }
 
 // ── DRAG & DROP ──
@@ -812,7 +870,7 @@ function buildBuyerSec(label,prods,type,gid){
   h+=`<div class="table-wrap"><table><thead><tr>`;
   h+=`<th style="width:28px"><input type="checkbox" class="row-check" ${allChecked?'checked':''} onchange="toggleAllBuyer('${type}',${gid},this.checked)"></th>`;
   h+=`<th style="width:40px">이미지</th><th style="min-width:80px">제품명</th>`;
-  if(isS)h+=`<th style="min-width:66px">카테고리</th>`;
+
   h+=`<th style="width:46px">입수량</th><th style="min-width:76px;text-align:right">원가합계</th>`;
   h+=`<th style="min-width:100px">마진율(%)</th>`;
   h+=`<th style="min-width:84px;text-align:right">바이어단가<br><span style="font-size:9px;opacity:.6">VAT미포함</span></th>`;
@@ -875,7 +933,7 @@ function findProd(id,type,gid){return getList(type,gid).find(p=>p.id===id)}
 
 function addProd(type,gid){
   const id=S.np++;const costs=mkCosts();
-  const p={id,name:'신규 제품',qty:10,img:null,links:{},costs,buyerRate:130};
+  const p={id,name:'신규 제품',qty:10,img:null,links:{},costs:mkCosts(type==='spec'?'spec':'normal'),buyerRate:130};
   if(type==='normal')S.normalProds.push(p);
   else{const g=S.specGroups.find(g=>g.id===gid);if(g){p.cat=g.cats[0]||'';g.prods.push(p)}}
   scheduleAutoSave();renderTab('cost');
@@ -888,7 +946,7 @@ function delProd(id,type,gid){
 function upN(id,t,g,v){const p=findProd(id,t,g);if(p){p.name=v;scheduleAutoSave()}}
 function upQ(id,t,g,v){const p=findProd(id,t,g);if(p){p.qty=parseInt(v)||0;scheduleAutoSave()}}
 function upCatP(id,gid,v){const g=S.specGroups.find(g=>g.id===gid);if(!g)return;const p=g.prods.find(p=>p.id===id);if(p){p.cat=v;scheduleAutoSave()}}
-function upC(pid,t,gid,mid,v){const p=findProd(pid,t,gid);if(p)p.costs[mid]=parseFloat(v)||0;scheduleAutoSave();renderTab('cost')}
+function upC(pid,t,gid,mid,v){const p=findProd(pid,t,gid);if(p)p.costs[mid]=parseFloat(v)||0;scheduleAutoSave();renderTab('cost');}
 function upR(pid,t,gid,v){const p=findProd(pid,t,gid);if(p){p.buyerRate=parseFloat(v)||100;scheduleAutoSave();renderTab('buyer')}}
 function updateGL(gid,v){const g=S.specGroups.find(g=>g.id===gid);if(g){g.label=v;scheduleAutoSave()}}
 function addSpecGroup(){const id=S.ng++;S.specGroups.push({id,label:'특이 제품 '+id,cats:['기본'],prods:[]});scheduleAutoSave();renderTab('cost')}
@@ -920,18 +978,45 @@ function handleImg(e){
   reader.readAsDataURL(f);e.target.value='';
 }
 
-function openAddMenu(){S.editMenuId=null;S.editMenuIsNew=true;document.getElementById('mm-title').textContent='메뉴 추가';document.getElementById('menu-inp').value='';document.getElementById('menu-del-btn').style.display='none';document.getElementById('menu-modal').classList.add('on')}
-function openEditMenu(id){S.editMenuId=id;S.editMenuIsNew=false;const m=S.menus.find(x=>x.id===id);document.getElementById('mm-title').textContent='메뉴 수정';document.getElementById('menu-inp').value=m?m.n:'';document.getElementById('menu-del-btn').style.display='inline-flex';document.getElementById('menu-modal').classList.add('on')}
+function openAddMenu(type='normal'){
+  S.editMenuId=null;S.editMenuIsNew=true;S.editMenuTarget=type;
+  document.getElementById('mm-title').textContent=(type==='spec'?'특이제품 ':'일반제품 ')+'메뉴 추가';
+  document.getElementById('menu-inp').value='';
+  document.getElementById('menu-del-btn').style.display='none';
+  document.getElementById('menu-modal').classList.add('on');
+}
+function openEditMenu(id,type='normal'){
+  S.editMenuId=id;S.editMenuIsNew=false;S.editMenuTarget=type;
+  const menus=getMenus(type);
+  const m=menus.find(x=>x.id===id);
+  document.getElementById('mm-title').textContent=(type==='spec'?'특이제품 ':'일반제품 ')+'메뉴 수정';
+  document.getElementById('menu-inp').value=m?m.n:'';
+  document.getElementById('menu-del-btn').style.display='inline-flex';
+  document.getElementById('menu-modal').classList.add('on');
+}
 function saveMenu(){
   const n=document.getElementById('menu-inp').value.trim();if(!n)return;
-  if(S.editMenuIsNew){const id=S.nm++;S.menus.push({id,n});[...S.normalProds,...S.specGroups.flatMap(g=>g.prods)].forEach(p=>p.costs[id]=0)}
-  else{const m=S.menus.find(x=>x.id===S.editMenuId);if(m)m.n=n}
+  const type=S.editMenuTarget||'normal';
+  const menus=getMenus(type);
+  const prods=type==='spec'?S.specGroups.flatMap(g=>g.prods):S.normalProds;
+  if(S.editMenuIsNew){
+    const id=S.nm++;
+    menus.push({id,n});
+    prods.forEach(p=>p.costs[id]=0);
+  } else {
+    const m=menus.find(x=>x.id===S.editMenuId);if(m)m.n=n;
+  }
   scheduleAutoSave();closeM('menu-modal');renderTab('cost');
 }
 function delMenuModal(){
-  if(S.menus.length<=1)return;const id=S.editMenuId;
-  S.menus=S.menus.filter(m=>m.id!==id);
-  [...S.normalProds,...S.specGroups.flatMap(g=>g.prods)].forEach(p=>{delete p.costs[id];if(p.links)delete p.links[id]});
+  const type=S.editMenuTarget||'normal';
+  const menus=getMenus(type);
+  if(menus.length<=1)return;
+  const id=S.editMenuId;
+  const prods=type==='spec'?S.specGroups.flatMap(g=>g.prods):S.normalProds;
+  if(type==='normal') S.normalMenus=S.normalMenus.filter(m=>m.id!==id);
+  else S.specMenus=S.specMenus.filter(m=>m.id!==id);
+  prods.forEach(p=>{delete p.costs[id];if(p.links)delete p.links[id]});
   scheduleAutoSave();closeM('menu-modal');renderTab('cost');
 }
 
