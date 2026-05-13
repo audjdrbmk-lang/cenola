@@ -854,8 +854,8 @@ function exportAsHtmlTable(prods, isS, label){
   });
 
   const headerCols = isS
-    ? ['이미지','제품명','카테고리','입수량','바이어 단가 > 가격']
-    : ['이미지','제품명','입수량','바이어 단가 > 가격'];
+    ? ['이미지','제품명','카테고리','입수량','가격(VAT 미포함)']
+    : ['이미지','제품명','입수량','가격(VAT 미포함)'];
 
   const tableRows = rows.map(({p, bp, imgTag, isS})=>{
     const cells = isS
