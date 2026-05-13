@@ -657,7 +657,7 @@ function buildBuyerSec(label,prods,type,gid){
   const selIds=new Set(selKeys.map(k=>parseInt(k.split('|')[2])));
   const allChecked=prods.length>0&&prods.every(p=>selIds.has(p.id));
   let h=`<div class="section" style="margin-bottom:16px"><div class="sec-head"><div class="sec-title"><span style="font-size:13px;font-weight:600">${esc(label)}</span></div>`;
-  h+=`<button class="btn btn-success btn-sm" onclick="exportXlsx('${type}',${gid})"><i class="fa-solid fa-file-excel"></i> 엑셀 내보내기</button></div>`;
+  h+=`<button class="btn btn-success btn-sm" onclick="exportXlsx('${type}',${gid})"><i class="fa-solid fa-file-arrow-down"></i> 단가표 내보내기</button></div>`;
   h+=`<div class="table-wrap"><table><thead><tr>`;
   h+=`<th style="width:28px"><input type="checkbox" class="row-check" ${allChecked?'checked':''} onchange="toggleAllBuyer('${type}',${gid},this.checked)"></th>`;
   h+=`<th style="width:40px">이미지</th><th style="min-width:80px">제품명</th>`;
@@ -841,12 +841,77 @@ function exportXlsx(type,gid){
   const prods=selIds.size>0?allProds.filter(p=>selIds.has(p.id)):allProds;
   const isS=type==='spec';
   const label=type==='normal'?S.normalLabel:(S.specGroups.find(g=>g.id===gid)||{}).label||'특이제품';
-  const wb=XLSX.utils.book_new();
-  const rows=[isS?['제품명','카테고리','입수량','VAT 미포함 바이어 단가(원)']:['제품명','입수량','VAT 미포함 바이어 단가(원)']];
-  prods.forEach(p=>{const tot=gT(p),rate=parseFloat(p.buyerRate)||100,bp=Math.round(tot*(rate/100));if(isS)rows.push([p.name,p.cat||'',p.qty||0,bp]);else rows.push([p.name,p.qty||0,bp])});
-  const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=isS?[{wch:22},{wch:14},{wch:12},{wch:22}]:[{wch:22},{wch:12},{wch:22}];
-  XLSX.utils.book_append_sheet(wb,ws,'바이어단가표');
-  XLSX.writeFile(wb,`${label}_바이어단가표.xlsx`);
+  exportAsHtmlTable(prods, isS, label);
+}
+
+function exportAsHtmlTable(prods, isS, label){
+  const rows = prods.map(p=>{
+    const tot=gT(p), rate=parseFloat(p.buyerRate)||100, bp=Math.round(tot*(rate/100));
+    const imgTag = p.img
+      ? `<img src="${p.img}" style="width:80px;height:80px;object-fit:cover;border-radius:4px">`
+      : '<div style="width:80px;height:80px;background:#f0f0f0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aaa">없음</div>';
+    return {p, tot, bp, imgTag, isS};
+  });
+
+  const headerCols = isS
+    ? ['이미지','제품명','카테고리','입수량','바이어 단가 > 가격']
+    : ['이미지','제품명','입수량','바이어 단가 > 가격'];
+
+  const tableRows = rows.map(({p, bp, imgTag, isS})=>{
+    const cells = isS
+      ? [imgTag, esc(p.name), esc(p.cat||''), p.qty||0, Math.round(bp).toLocaleString('ko-KR')+'원']
+      : [imgTag, esc(p.name), p.qty||0, Math.round(bp).toLocaleString('ko-KR')+'원'];
+    return `<tr>${cells.map((c,i)=>`<td style="padding:10px 12px;border:1px solid #e0e0e0;vertical-align:middle;${i===0?'text-align:center':''}${i===cells.length-1?';font-weight:600;color:#1a7f4b;text-align:right':''}">${c}</td>`).join('')}</tr>`;
+  }).join('');
+
+  const buyerName = prompt('바이어명을 입력하세요', '');
+  const buyerLabel = buyerName ? buyerName.trim() : '';
+
+  const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>CENOLA 단가표${buyerLabel ? ' _ '+buyerLabel : ''}</title>
+<style>
+  body { font-family: 'Noto Sans KR', sans-serif; padding: 32px; color: #1a1917; background: #f5f4f0; }
+  .doc-title { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .brand { font-size: 22px; font-weight: 700; letter-spacing: -.5px; color: #1a1917; }
+  .sep { font-size: 18px; color: #ccc; }
+  .buyer { font-size: 20px; font-weight: 600; color: #2a2926; }
+  .sub { font-size: 12px; color: #888; margin-bottom: 24px; }
+  table { border-collapse: collapse; width: 100%; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  thead th { background: #2a2926; color: #fff; padding: 10px 12px; font-size: 12px; font-weight: 500; text-align: left; border: 1px solid #444; }
+  tbody tr:hover td { background: #f9f8f5; }
+  @media print {
+    body { background: #fff; padding: 16px; }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="no-print" style="margin-bottom:16px">
+  <button onclick="window.print()" style="padding:8px 18px;background:#2a2926;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨️ 인쇄 / PDF 저장</button>
+</div>
+<div class="doc-title">
+  <span class="brand">CENOLA 단가표</span>
+  ${buyerLabel ? '<span class="sep">_</span><span class="buyer">'+buyerLabel+'</span>' : ''}
+</div>
+<div class="sub">출력일: ${new Date().toLocaleDateString('ko-KR')} &nbsp;·&nbsp; 총 ${prods.length}개 제품</div>
+<table>
+  <thead><tr>${headerCols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+  <tbody>${tableRows}</tbody>
+</table>
+</body>
+</html>`;
+
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${label}_바이어단가표.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('이미지 포함 단가표 다운로드 완료 ✓');
 }
 
 function closeM(id){document.getElementById(id).classList.remove('on')}
