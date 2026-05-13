@@ -418,7 +418,7 @@ tr[draggable]:active { cursor: grabbing; }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-const API = 'https://script.google.com/macros/s/AKfycbzDYovNw5AZ971IjzfvwLqfdjue-XT5Qn8ye7WvZ5FjQXKNpHEoKauC-ckuziwN1FBf/exec';
+const API = 'https://script.google.com/macros/s/AKfycbwNpNrh37Q88wfyQChk0EFnF_udE696LHuAFEgyW8RZDbdbX-nfcBj6dKGTeTDMuMjJ/exec';
 const VAT = 1.1;
 
 let S = {
@@ -462,7 +462,11 @@ async function loadData(){
   try{
     const res=await fetch(API+'?action=load');
     const json=await res.json();
-    if(json.ok&&json.data){parseSheetData(json.data);showToast('데이터를 불러왔습니다')}
+    if(json.ok&&json.data){
+      parseSheetData(json.data);
+      loadImagesLocally(); // 로컬스토리지에서 이미지 복원
+      showToast('데이터를 불러왔습니다');
+    }
   }catch(e){showToast('불러오기 실패 — 기본값으로 시작합니다')}
   hideLoading();renderTab('cost');
 }
@@ -510,37 +514,66 @@ function scheduleAutoSave(){
   saveTimeout=setTimeout(()=>saveData(),2000); // 2초로 여유 증가
 }
 
+// 이미지는 로컬스토리지에 별도 저장
+function saveImagesLocally(){
+  try {
+    const imgs = {};
+    [...S.normalProds,...S.specGroups.flatMap(g=>g.prods),...S.soldoutProds].forEach(p=>{
+      if(p.img) imgs[p.id]=p.img;
+    });
+    localStorage.setItem('yunbling_imgs', JSON.stringify(imgs));
+  } catch(e){ console.log('이미지 로컬 저장 실패:', e.message); }
+}
+function loadImagesLocally(){
+  try {
+    const imgs = JSON.parse(localStorage.getItem('yunbling_imgs')||'{}');
+    [...S.normalProds,...S.specGroups.flatMap(g=>g.prods),...S.soldoutProds].forEach(p=>{
+      if(imgs[p.id]) p.img = imgs[p.id];
+    });
+  } catch(e){ console.log('이미지 로컬 불러오기 실패:', e.message); }
+}
+
 async function saveData(){
   if(isSaving){ pendingSave=true; return; }
   isSaving=true;
   pendingSave=false;
 
-  // 낙관적 업데이트: 요청 즉시 저장됨 표시
+  // 이미지 로컬에 별도 저장
+  saveImagesLocally();
+
+  // 낙관적 업데이트
   setSyncStatus('ok');
   const now = new Date().toLocaleString('ko-KR');
   document.getElementById('sync-text').textContent = '저장됨 '+now;
 
   try{
-    const payload = JSON.stringify({
-      action:'save',
-      data:serializeData()
-    });
-    const url = API + '?action=save&payload=' + encodeURIComponent(payload);
-    // 백그라운드 저장 (응답 기다리지 않음)
-    fetch(url).then(res=>res.json()).then(json=>{
+    // 이미지 제외한 데이터만 시트에 저장 (POST)
+    const data = serializeData();
+    // 이미지 필드 비우기 (용량 절감)
+    const stripImgs = arr => arr.map(r => r.map(c => (typeof c==='string'&&c.startsWith('data:image'))?'__IMG__':c));
+    if(data.normalProds) data.normalProds = stripImgs(data.normalProds);
+    if(data.specProds)   data.specProds   = stripImgs(data.specProds);
+    if(data.soldout)     data.soldout     = stripImgs(data.soldout);
+
+    fetch(API, {
+      method: 'POST',
+      body: JSON.stringify({action:'save', data}),
+      headers: {'Content-Type':'text/plain'} // Apps Script CORS 우회
+    }).then(res=>res.json()).then(json=>{
       if(!json.ok){
         setSyncStatus('error');
         showToast('⚠️ 저장 실패: '+(json.error||'오류'));
-        setTimeout(()=>saveData(), 5000);
+        setTimeout(()=>saveData(), 8000);
       } else {
-        const t = json.data && json.data.savedAt ? json.data.savedAt : now;
+        const t = json.data&&json.data.savedAt ? json.data.savedAt : now;
         document.getElementById('sync-text').textContent = '저장됨 '+t;
+        setSyncStatus('ok');
       }
       if(pendingSave){ pendingSave=false; scheduleAutoSave(); }
     }).catch(e=>{
       setSyncStatus('error');
       showToast('⚠️ 저장 실패: '+e.message);
-      setTimeout(()=>saveData(), 5000);
+      setTimeout(()=>saveData(), 8000);
     });
   } catch(e){
     setSyncStatus('error');
@@ -989,10 +1022,9 @@ function handleImg(e){
   const f=e.target.files[0];if(!f)return;
   const reader=new FileReader();
   reader.onload=ev=>{
-    // 이미지 압축 (500×500 이하, 품질 0.7)
     const img=new Image();
     img.onload=()=>{
-      const MAX=500;
+      const MAX=400; // 더 작게 압축 (저장 안정성)
       const canvas=document.createElement('canvas');
       let w=img.width, h=img.height;
       if(w>MAX||h>MAX){
@@ -1001,9 +1033,14 @@ function handleImg(e){
       }
       canvas.width=w; canvas.height=h;
       canvas.getContext('2d').drawImage(img,0,0,w,h);
-      const compressed=canvas.toDataURL('image/jpeg',0.72);
+      const compressed=canvas.toDataURL('image/jpeg',0.65); // 품질 낮춰 용량 절감
       const p=findProd(S.uploadPid,S.uploadType,S.uploadGid);
-      if(p){p.img=compressed;scheduleAutoSave();renderTab('cost')}
+      if(p){
+        p.img=compressed;
+        saveImagesLocally(); // 이미지는 로컬에만 저장
+        renderTab('cost');
+        showToast('이미지 업로드 완료 ✓');
+      }
     };
     img.src=ev.target.result;
   };
