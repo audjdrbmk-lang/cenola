@@ -602,9 +602,13 @@ function sTab(t,el){
 }
 function renderTab(t){
   const el=document.getElementById('pg-'+t);if(!el)return;
+  // 스크롤 위치 저장
+  const scrollY=window.scrollY;
   if(t==='cost')el.innerHTML=buildCostPage();
   else if(t==='buyer')el.innerHTML=buildBuyerPage();
   else el.innerHTML=buildSupPage();
+  // 스크롤 위치 복원
+  requestAnimationFrame(()=>window.scrollTo(0,scrollY));
 }
 
 // ── SELECTION HELPERS ──
