@@ -60,7 +60,7 @@ body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: va
 
 /* ── SECTION ── */
 .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 16px; }
-.sec-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; position: sticky; top: 103px; z-index: 25; box-shadow: 0 2px 4px rgba(0,0,0,.06); }
+.sec-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
 .sec-title { display: flex; align-items: center; gap: 8px; }
 .grp-name-input { font-size: 13px; font-weight: 600; border: none; background: transparent; color: var(--text); outline: none; min-width: 60px; max-width: 140px; cursor: text; }
 .grp-name-input:focus { border-bottom: 1.5px solid var(--border2); }
@@ -200,7 +200,7 @@ th.col-name { left: 98px; box-shadow: 2px 0 5px rgba(0,0,0,.07); }
 }
 .table-wrap table thead th {
   position: sticky;
-  top: 148px; /* header(52) + tabs(51) + sec-head(45) */
+  top: 103px; /* header(52) + tabs(51) */
   z-index: 20;
   background: var(--surface2);
   border-bottom: 1px solid var(--border);
@@ -212,8 +212,7 @@ th.col-name { left: 98px; box-shadow: 2px 0 5px rgba(0,0,0,.07); }
 
 /* ── MOBILE ── */
 @media (max-width: 768px) {
-  .table-wrap table thead th { top: 138px; }
-  .sec-head { top: 91px; }
+  .table-wrap table thead th { top: 91px; }
   body { font-size: 12px; }
   .header { padding: 0 12px; height: 46px; }
   .logo { font-size: 13px; }
@@ -280,7 +279,7 @@ tr[draggable]:active { cursor: grabbing; }
 
 /* ── CHECKBOX ── */
 .row-check { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
-.bulk-bar { display: none; align-items: center; gap: 8px; padding: 7px 12px; background: var(--info-bg); border-bottom: 1px solid var(--border); flex-wrap: wrap; position: sticky; top: 148px; z-index: 24; }
+.bulk-bar { display: none; align-items: center; gap: 8px; padding: 7px 12px; background: var(--info-bg); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
 .bulk-bar.show { display: flex; }
 .bulk-count { font-size: 11px; color: var(--info); font-weight: 500; }
 
@@ -312,6 +311,7 @@ tr[draggable]:active { cursor: grabbing; }
     <div class="tab on" onclick="sTab('cost',this)">기본 단가표</div>
     <div class="tab" onclick="sTab('buyer',this)">바이어 단가표</div>
     <div class="tab" onclick="sTab('supplier',this)">업체 정보</div>
+    <div class="tab" onclick="sTab('upload',this)">대량 업로드</div>
   </div>
 </div>
 
@@ -320,6 +320,7 @@ tr[draggable]:active { cursor: grabbing; }
   <div class="page on" id="pg-cost"></div>
   <div class="page" id="pg-buyer"></div>
   <div class="page" id="pg-supplier"></div>
+  <div class="page" id="pg-upload"></div>
 </div>
 
 <!-- MODALS -->
@@ -611,7 +612,8 @@ function renderTab(t){
 
   if(t==='cost')el.innerHTML=buildCostPage();
   else if(t==='buyer')el.innerHTML=buildBuyerPage();
-  else el.innerHTML=buildSupPage();
+  else if(t==='supplier')el.innerHTML=buildSupPage();
+  else if(t==='upload')el.innerHTML=buildUploadPage();
 
   // 렌더 완료 후 스크롤 복원
   requestAnimationFrame(()=>{
@@ -1409,6 +1411,286 @@ function exportAsHtmlTable(prods, isS, label, buyerName='', inclKrw=true, inclUs
   a.click();
   URL.revokeObjectURL(url);
   showToast('이미지 포함 단가표 다운로드 완료 ✓');
+}
+
+
+// ── 대량 업로드 ──────────────────────────────────────────
+
+function buildUploadPage(){
+  return `
+  <div class="section" style="margin-bottom:16px">
+    <div class="sec-head"><span style="font-size:13px;font-weight:600">대량 업로드</span></div>
+    <div style="padding:16px">
+
+      <!-- 업로드 탭 -->
+      <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px">
+        <div class="upload-subtab on" onclick="setUploadTab('normal',this)" style="padding:7px 14px;cursor:pointer;font-size:12px;font-weight:500;color:var(--text);border-bottom:2px solid var(--accent);margin-bottom:-1px">일반 제품</div>
+        <div class="upload-subtab" onclick="setUploadTab('spec',this)" style="padding:7px 14px;cursor:pointer;font-size:12px;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px">특이 제품</div>
+        <div class="upload-subtab" onclick="setUploadTab('supplier',this)" style="padding:7px 14px;cursor:pointer;font-size:12px;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px">업체 정보</div>
+      </div>
+
+      <!-- 일반제품 탭 -->
+      <div id="utab-normal">
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="downloadTemplate('normal')"><i class="fa-solid fa-download"></i> 양식 다운로드</button>
+          <button class="btn" onclick="document.getElementById('ul-normal').click()"><i class="fa-solid fa-upload"></i> 엑셀 업로드</button>
+          <input type="file" id="ul-normal" accept=".xlsx,.xls" style="display:none" onchange="handleUpload(event,'normal')">
+        </div>
+        <div class="info-box" style="margin:0">
+          <div>
+            <div style="font-weight:500;margin-bottom:6px">일반 제품 양식 컬럼</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.8">
+              A: 제품명 &nbsp;·&nbsp; B: 입수량 &nbsp;·&nbsp; C: 마진율(%) &nbsp;·&nbsp;
+              ${S.normalMenus.map((m,i)=>'<span style="color:var(--info)">'+(String.fromCharCode(68+i))+': '+esc(m.n)+'</span>').join(' &nbsp;·&nbsp; ')}
+            </div>
+            <div style="margin-top:8px;font-size:10px;color:var(--text3)">※ 양식 다운로드 후 작성하여 업로드하세요. 기존 제품은 유지되고 새 제품이 추가됩니다.</div>
+          </div>
+        </div>
+        <div id="ul-preview-normal" style="margin-top:12px"></div>
+      </div>
+
+      <!-- 특이제품 탭 -->
+      <div id="utab-spec" style="display:none">
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="downloadTemplate('spec')"><i class="fa-solid fa-download"></i> 양식 다운로드</button>
+          <button class="btn" onclick="document.getElementById('ul-spec').click()"><i class="fa-solid fa-upload"></i> 엑셀 업로드</button>
+          <input type="file" id="ul-spec" accept=".xlsx,.xls" style="display:none" onchange="handleUpload(event,'spec')">
+        </div>
+        <div class="info-box" style="margin:0">
+          <div>
+            <div style="font-weight:500;margin-bottom:6px">특이 제품 양식 컬럼</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.8">
+              A: 제품명 &nbsp;·&nbsp; B: 그룹명(특이 제품 그룹 이름) &nbsp;·&nbsp; C: 입수량 &nbsp;·&nbsp; D: 마진율(%) &nbsp;·&nbsp;
+              ${S.specMenus.map((m,i)=>'<span style="color:var(--info)">'+(String.fromCharCode(69+i))+': '+esc(m.n)+'</span>').join(' &nbsp;·&nbsp; ')}
+            </div>
+            <div style="margin-top:8px;font-size:10px;color:var(--text3)">※ 그룹명은 기존 그룹과 일치해야 합니다. 없으면 새 그룹이 생성됩니다.</div>
+          </div>
+        </div>
+        <div id="ul-preview-spec" style="margin-top:12px"></div>
+      </div>
+
+      <!-- 업체정보 탭 -->
+      <div id="utab-supplier" style="display:none">
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="downloadTemplate('supplier')"><i class="fa-solid fa-download"></i> 양식 다운로드</button>
+          <button class="btn" onclick="document.getElementById('ul-supplier').click()"><i class="fa-solid fa-upload"></i> 엑셀 업로드</button>
+          <input type="file" id="ul-supplier" accept=".xlsx,.xls" style="display:none" onchange="handleUpload(event,'supplier')">
+        </div>
+        <div class="info-box" style="margin:0">
+          <div>
+            <div style="font-weight:500;margin-bottom:6px">업체 정보 양식 컬럼</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.8">
+              A: 업체명 &nbsp;·&nbsp; B: 담당자명 &nbsp;·&nbsp; C: 연락처 &nbsp;·&nbsp; D: 이메일 &nbsp;·&nbsp;
+              E: 담당 부자재 <span style="color:var(--text3)">(쉼표로 구분, 예: 용기,단상자)</span>
+            </div>
+          </div>
+        </div>
+        <div id="ul-preview-supplier" style="margin-top:12px"></div>
+      </div>
+
+    </div>
+  </div>`;
+}
+
+function setUploadTab(type, el){
+  document.querySelectorAll('.upload-subtab').forEach(e=>{
+    e.style.color='var(--text2)';
+    e.style.borderBottom='2px solid transparent';
+    e.style.fontWeight='normal';
+  });
+  el.style.color='var(--text)';
+  el.style.borderBottom='2px solid var(--accent)';
+  el.style.fontWeight='500';
+  ['normal','spec','supplier'].forEach(t=>{
+    const el2=document.getElementById('utab-'+t);
+    if(el2) el2.style.display = t===type ? 'block' : 'none';
+  });
+}
+
+// ── 양식 다운로드 ──
+function downloadTemplate(type){
+  const wb = XLSX.utils.book_new();
+  let headers, example, sheetName;
+
+  if(type==='normal'){
+    const menuCols = S.normalMenus.map(m=>m.n);
+    headers = ['제품명','입수량','마진율(%)'].concat(menuCols);
+    example = ['예시 제품', 10, 130, ...S.normalMenus.map(()=>0)];
+    sheetName = '일반제품';
+  } else if(type==='spec'){
+    const menuCols = S.specMenus.map(m=>m.n);
+    headers = ['제품명','그룹명','입수량','마진율(%)'].concat(menuCols);
+    example = ['예시 제품', S.specGroups[0]?.label||'특이 제품', 10, 130, ...S.specMenus.map(()=>0)];
+    sheetName = '특이제품';
+  } else {
+    headers = ['업체명','담당자명','연락처','이메일','담당 부자재(쉼표구분)'];
+    example = ['예시업체', '김담당', '010-1234-5678', 'cs@example.com', '용기,단상자'];
+    sheetName = '업체정보';
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+  // 헤더 컬럼 너비
+  ws['!cols'] = headers.map(()=>({wch:16}));
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, `윤블링_${sheetName}_업로드양식.xlsx`);
+}
+
+// ── 엑셀 업로드 처리 ──
+function handleUpload(e, type){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const wb = XLSX.read(ev.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if(rows.length < 2){ showToast('데이터가 없습니다'); return; }
+
+      const headers = rows[0];
+      const dataRows = rows.slice(1).filter(r => r[0]); // 빈 행 제거
+
+      if(type==='normal') previewUpload(dataRows, headers, 'normal');
+      else if(type==='spec') previewUpload(dataRows, headers, 'spec');
+      else previewSupplierUpload(dataRows, headers);
+    } catch(err){
+      showToast('파일 읽기 실패: '+err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+  e.target.value='';
+}
+
+// ── 미리보기 + 확정 ──
+function previewUpload(dataRows, headers, type){
+  const isSpec = type==='spec';
+  const menus = isSpec ? S.specMenus : S.normalMenus;
+  const previewEl = document.getElementById('ul-preview-'+type);
+
+  // 파싱
+  const parsed = dataRows.map(r => {
+    const name = String(r[0]||'').trim();
+    if(!name) return null;
+    const obj = isSpec
+      ? { name, grp: String(r[1]||'').trim(), qty: parseInt(r[2])||0, buyerRate: parseFloat(r[3])||130, costs:{} }
+      : { name, qty: parseInt(r[1])||0, buyerRate: parseFloat(r[2])||130, costs:{} };
+    const offset = isSpec ? 4 : 3;
+    menus.forEach((m,i) => { obj.costs[m.id] = parseFloat(r[offset+i])||0; });
+    return obj;
+  }).filter(Boolean);
+
+  if(!parsed.length){ showToast('유효한 데이터가 없습니다'); return; }
+
+  // 미리보기 테이블
+  let h = `<div style="margin-bottom:10px;font-size:12px;font-weight:500;color:var(--text2)">${parsed.length}개 제품 미리보기</div>`;
+  h += `<div style="overflow-x:auto;max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">`;
+  h += `<table style="width:100%;border-collapse:collapse;font-size:11px">`;
+  h += `<thead><tr style="background:var(--surface2)">`;
+  h += `<th style="padding:6px 10px;border-bottom:1px solid var(--border);text-align:left">제품명</th>`;
+  if(isSpec) h += `<th style="padding:6px 10px;border-bottom:1px solid var(--border)">그룹</th>`;
+  h += `<th style="padding:6px 10px;border-bottom:1px solid var(--border)">입수량</th>`;
+  h += `<th style="padding:6px 10px;border-bottom:1px solid var(--border)">마진율</th>`;
+  menus.forEach(m => { h += `<th style="padding:6px 10px;border-bottom:1px solid var(--border)">${esc(m.n)}</th>`; });
+  h += `</tr></thead><tbody>`;
+  parsed.forEach(p => {
+    h += `<tr>`;
+    h += `<td style="padding:5px 10px;border-bottom:1px solid var(--border)">${esc(p.name)}</td>`;
+    if(isSpec) h += `<td style="padding:5px 10px;border-bottom:1px solid var(--border);text-align:center">${esc(p.grp)}</td>`;
+    h += `<td style="padding:5px 10px;border-bottom:1px solid var(--border);text-align:center">${p.qty}</td>`;
+    h += `<td style="padding:5px 10px;border-bottom:1px solid var(--border);text-align:center">${p.buyerRate}%</td>`;
+    menus.forEach(m => { h += `<td style="padding:5px 10px;border-bottom:1px solid var(--border);text-align:right">${p.costs[m.id]||0}</td>`; });
+    h += `</tr>`;
+  });
+  h += `</tbody></table></div>`;
+  h += `<div style="display:flex;gap:8px;margin-top:10px">`;
+  h += `<button class="btn btn-primary" onclick="confirmUpload('${type}')"><i class="fa-solid fa-check"></i> ${parsed.length}개 추가 확정</button>`;
+  h += `<button class="btn" onclick="document.getElementById('ul-preview-${type}').innerHTML=''">취소</button>`;
+  h += `</div>`;
+  previewEl.innerHTML = h;
+  previewEl._parsed = parsed;
+}
+
+function previewSupplierUpload(dataRows, headers){
+  const previewEl = document.getElementById('ul-preview-supplier');
+  const parsed = dataRows.map(r=>{
+    const co = String(r[0]||'').trim();
+    if(!co) return null;
+    const menuNames = String(r[4]||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const menuIds = menuNames.map(n=>{
+      const m = S.normalMenus.find(m=>m.n===n) || S.specMenus.find(m=>m.n===n);
+      return m ? m.id : null;
+    }).filter(x=>x!==null);
+    return { co, ct:String(r[1]||''), ph:String(r[2]||''), em:String(r[3]||''), menuIds };
+  }).filter(Boolean);
+
+  if(!parsed.length){ showToast('유효한 데이터가 없습니다'); return; }
+
+  let h = `<div style="margin-bottom:10px;font-size:12px;font-weight:500;color:var(--text2)">${parsed.length}개 업체 미리보기</div>`;
+  h += `<div style="overflow-x:auto;border:1px solid var(--border);border-radius:6px">`;
+  h += `<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--surface2)">`;
+  ['업체명','담당자','연락처','이메일','담당 부자재'].forEach(col=>{
+    h += `<th style="padding:6px 10px;border-bottom:1px solid var(--border);text-align:left">${col}</th>`;
+  });
+  h += `</tr></thead><tbody>`;
+  parsed.forEach(s=>{
+    const menuNames = s.menuIds.map(id=>{ const m=S.normalMenus.find(m=>m.id===id)||S.specMenus.find(m=>m.id===id); return m?m.n:''; }).join(', ');
+    h += `<tr>`;
+    [s.co,s.ct,s.ph,s.em,menuNames||'-'].forEach(v=>{
+      h += `<td style="padding:5px 10px;border-bottom:1px solid var(--border)">${esc(String(v))}</td>`;
+    });
+    h += `</tr>`;
+  });
+  h += `</tbody></table></div>`;
+  h += `<div style="display:flex;gap:8px;margin-top:10px">`;
+  h += `<button class="btn btn-primary" onclick="confirmSupplierUpload()"><i class="fa-solid fa-check"></i> ${parsed.length}개 추가 확정</button>`;
+  h += `<button class="btn" onclick="document.getElementById('ul-preview-supplier').innerHTML=''">취소</button>`;
+  h += `</div>`;
+  previewEl.innerHTML = h;
+  previewEl._parsed = parsed;
+}
+
+function confirmUpload(type){
+  const previewEl = document.getElementById('ul-preview-'+type);
+  const parsed = previewEl._parsed;
+  if(!parsed||!parsed.length) return;
+
+  if(type==='normal'){
+    parsed.forEach(p=>{
+      const id=S.np++;
+      S.normalProds.push({id, name:p.name, qty:p.qty, img:null, links:{}, costs:p.costs, buyerRate:p.buyerRate});
+    });
+  } else {
+    parsed.forEach(p=>{
+      // 그룹 찾거나 생성
+      let grp = S.specGroups.find(g=>g.label===p.grp);
+      if(!grp){
+        const gid=S.ng++;
+        grp={id:gid,label:p.grp,cats:[],prods:[]};
+        S.specGroups.push(grp);
+      }
+      const id=S.np++;
+      grp.prods.push({id, name:p.name, qty:p.qty, img:null, links:{}, costs:p.costs, buyerRate:p.buyerRate, cat:''});
+    });
+  }
+
+  scheduleAutoSave();
+  previewEl.innerHTML = `<div style="padding:12px;color:var(--success);font-weight:500;font-size:13px"><i class="fa-solid fa-check-circle"></i> ${parsed.length}개 제품이 추가됐습니다!</div>`;
+  showToast(`${parsed.length}개 제품 추가 완료 ✓`);
+}
+
+function confirmSupplierUpload(){
+  const previewEl = document.getElementById('ul-preview-supplier');
+  const parsed = previewEl._parsed;
+  if(!parsed||!parsed.length) return;
+  parsed.forEach(s=>{
+    // 중복 체크 (같은 업체명이면 업데이트)
+    const existing = S.suppliers.find(x=>x.co===s.co);
+    if(existing){ existing.ct=s.ct;existing.ph=s.ph;existing.em=s.em;existing.menuIds=s.menuIds; }
+    else { S.suppliers.push({id:S.ns++, ...s}); }
+  });
+  scheduleAutoSave();
+  previewEl.innerHTML = `<div style="padding:12px;color:var(--success);font-weight:500;font-size:13px"><i class="fa-solid fa-check-circle"></i> ${parsed.length}개 업체가 추가/업데이트됐습니다!</div>`;
+  showToast(`${parsed.length}개 업체 처리 완료 ✓`);
 }
 
 function closeM(id){document.getElementById(id).classList.remove('on')}
