@@ -602,13 +602,27 @@ function sTab(t,el){
 }
 function renderTab(t){
   const el=document.getElementById('pg-'+t);if(!el)return;
-  // 스크롤 위치 저장
-  const scrollY=window.scrollY;
+  // 페이지 스크롤 + 테이블 래퍼 스크롤 모두 저장
+  const scrollY = window.scrollY;
+  const tableScrolls = {};
+  document.querySelectorAll('.table-wrap').forEach((el,i)=>{
+    tableScrolls[i] = {x: el.scrollLeft, y: el.scrollTop};
+  });
+
   if(t==='cost')el.innerHTML=buildCostPage();
   else if(t==='buyer')el.innerHTML=buildBuyerPage();
   else el.innerHTML=buildSupPage();
-  // 스크롤 위치 복원
-  requestAnimationFrame(()=>window.scrollTo(0,scrollY));
+
+  // 렌더 완료 후 스크롤 복원
+  requestAnimationFrame(()=>{
+    window.scrollTo(0, scrollY);
+    document.querySelectorAll('.table-wrap').forEach((el,i)=>{
+      if(tableScrolls[i]){
+        el.scrollLeft = tableScrolls[i].x;
+        el.scrollTop  = tableScrolls[i].y;
+      }
+    });
+  });
 }
 
 // ── SELECTION HELPERS ──
@@ -1015,7 +1029,30 @@ function delProd(id,type,gid){
 function upN(id,t,g,v){const p=findProd(id,t,g);if(p){p.name=v;scheduleAutoSave()}}
 function upQ(id,t,g,v){const p=findProd(id,t,g);if(p){p.qty=parseInt(v)||0;scheduleAutoSave()}}
 function upCatP(id,gid,v){const g=S.specGroups.find(g=>g.id===gid);if(!g)return;const p=g.prods.find(p=>p.id===id);if(p){p.cat=v;scheduleAutoSave()}}
-function upC(pid,t,gid,mid,v){const p=findProd(pid,t,gid);if(p)p.costs[mid]=parseFloat(v)||0;scheduleAutoSave();renderTab('cost');}
+function upC(pid,t,gid,mid,v){
+  const p=findProd(pid,t,gid);
+  if(!p)return;
+  p.costs[mid]=parseFloat(v)||0;
+  scheduleAutoSave();
+  // renderTab 대신 해당 행 합계만 업데이트 (스크롤 유지)
+  updateRowTotals(pid,t,gid);
+}
+function updateRowTotals(pid,t,gid){
+  const p=findProd(pid,t,gid);
+  if(!p)return;
+  const tot=gT(p,t),vat=tot*VAT;
+  const gidVal=gid===null?'null':gid;
+  const tbody=document.getElementById('tbody-'+t+'-'+gidVal);
+  if(!tbody)return;
+  const row=[...tbody.querySelectorAll('tr')].find(r=>r.dataset.id==pid);
+  if(!row)return;
+  const cells=[...row.querySelectorAll('td')];
+  // 원가합계: 뒤에서 3번째, VAT포함: 뒤에서 2번째
+  const totalCell=cells[cells.length-3];
+  const vatCell=cells[cells.length-2];
+  if(totalCell) totalCell.textContent=fmt(tot);
+  if(vatCell) vatCell.textContent=fmt(vat);
+}
 function upR(pid,t,gid,v){const p=findProd(pid,t,gid);if(p){p.buyerRate=parseFloat(v)||100;scheduleAutoSave();renderTab('buyer')}}
 function updateGL(gid,v){const g=S.specGroups.find(g=>g.id===gid);if(g){g.label=v;scheduleAutoSave()}}
 function addSpecGroup(){const id=S.ng++;S.specGroups.push({id,label:'특이 제품 '+id,cats:['기본'],prods:[]});scheduleAutoSave();renderTab('cost')}
