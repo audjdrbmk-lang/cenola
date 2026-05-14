@@ -59,8 +59,8 @@ body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: va
 .page.on { display: block; }
 
 /* ── SECTION ── */
-.section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 16px; overflow: hidden; }
-.sec-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 16px; overflow: visible; }
+.sec-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; position: sticky; top: 103px; z-index: 20; box-shadow: 0 2px 4px rgba(0,0,0,.06); }
 .sec-title { display: flex; align-items: center; gap: 8px; }
 .grp-name-input { font-size: 13px; font-weight: 600; border: none; background: transparent; color: var(--text); outline: none; min-width: 60px; max-width: 140px; cursor: text; }
 .grp-name-input:focus { border-bottom: 1.5px solid var(--border2); }
@@ -280,7 +280,7 @@ tr[draggable]:active { cursor: grabbing; }
 
 /* ── CHECKBOX ── */
 .row-check { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
-.bulk-bar { display: none; align-items: center; gap: 8px; padding: 7px 12px; background: var(--info-bg); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.bulk-bar { display: none; align-items: center; gap: 8px; padding: 7px 12px; background: var(--info-bg); border-bottom: 1px solid var(--border); flex-wrap: wrap; position: sticky; top: 148px; z-index: 19; }
 .bulk-bar.show { display: flex; }
 .bulk-count { font-size: 11px; color: var(--info); font-weight: 500; }
 
@@ -780,9 +780,12 @@ function buildTable(prods,type,gid,allChecked){
       const curVal=p.costs[m.id]||0;
       h+=`<td class="split-td"><div class="split-td-inner">`;
       const dispVal = curVal > 0 ? curVal : '';
+      const mIdx = menus.findIndex(x=>x.id===m.id);
+      const nextMid = mIdx < menus.length-1 ? menus[mIdx+1].id : 'null';
       h+=`<div class="split-top"><input type="number" value="${dispVal}" min="0" placeholder="0"
+        data-pid="${p.id}" data-type="${type}" data-gid="${gidVal}" data-mid="${m.id}" data-nextmid="${nextMid}"
         onfocus="this.dataset.prev=this.value;this.dataset.hadval=(this.value!==''&&parseFloat(this.value)>0)?'1':'0'"
-        onkeydown="if(event.key==='Escape'){this.value=this.dataset.prev;this.blur()}"
+        onkeydown="handlePriceKey(event,this,${p.id},'${type}',${gid},${m.id})"
         onblur="confirmPrice(this,${p.id},'${type}',${gid},${m.id})"></div>`;
       h+=`<div class="split-bot${supName?'':' empty'}" onclick="openLink(${p.id},'${type}',${gid},${m.id})">${supName?esc(supName):'연결'}</div>`;
       h+=`</div></td>`;
@@ -797,20 +800,59 @@ function buildTable(prods,type,gid,allChecked){
   return h;
 }
 
-// 가격 입력 확인 팝업
-function confirmPrice(input, pid, type, gid, mid){
-  const newVal = parseFloat(input.value)||0;
-  const prevVal = parseFloat(input.dataset.prev)||0;
-  if(newVal === prevVal) return; // 변경 없으면 통과
-
-  // 빈칸(0)에서 처음 입력하는 경우 → 팝업 없이 바로 저장
-  const hadVal = input.dataset.hadval === '1';
-  if(!hadVal){
-    upC(pid, type, gid, mid, newVal);
+// 엔터 키 처리
+function handlePriceKey(e, input, pid, type, gid, mid){
+  if(e.key === 'Escape'){
+    e.preventDefault();
+    input.value = input.dataset.prev;
+    // 팝업 닫기
+    document.getElementById('price-confirm-popup').style.display='none';
+    input.blur();
     return;
   }
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    const newVal = parseFloat(input.value)||0;
+    const prevVal = parseFloat(input.dataset.prev)||0;
+    const hadVal = input.dataset.hadval === '1';
 
-  // 기존값이 있는 경우 → 확인 팝업
+    if(newVal === prevVal){
+      // 변경 없으면 다음 칸으로 이동
+      movePriceNext(input, pid, type, gid, mid);
+      return;
+    }
+
+    if(!hadVal){
+      // 최초 입력: 바로 저장 후 다음 칸으로
+      upC(pid, type, gid, mid, newVal);
+      input.dataset.prev = String(newVal);
+      input.dataset.hadval = '1';
+      movePriceNext(input, pid, type, gid, mid);
+    } else {
+      // 수정: 팝업 띄우기
+      showPricePopup(input, pid, type, gid, mid, prevVal, newVal);
+    }
+  }
+}
+
+// 다음 메뉴 칸으로 커서 이동
+function movePriceNext(input, pid, type, gid, mid){
+  const nextMid = input.dataset.nextmid;
+  if(!nextMid || nextMid === 'null'){
+    input.blur();
+    return;
+  }
+  const gidVal = gid===null?'null':gid;
+  const tbody = document.getElementById('tbody-'+type+'-'+gidVal);
+  if(!tbody) return;
+  const row = [...tbody.querySelectorAll('tr')].find(r=>r.dataset.id==pid);
+  if(!row) return;
+  const nextInput = row.querySelector(`input[data-mid="${nextMid}"]`);
+  if(nextInput){ nextInput.focus(); nextInput.select(); }
+}
+
+// 가격 확인 팝업 표시
+function showPricePopup(input, pid, type, gid, mid, prevVal, newVal){
   const rect = input.getBoundingClientRect();
   const popup = document.getElementById('price-confirm-popup');
   const fmt2 = n => Math.round(n).toLocaleString('ko-KR')+'원';
@@ -822,15 +864,40 @@ function confirmPrice(input, pid, type, gid, mid){
   popup._pid=pid; popup._type=type; popup._gid=gid; popup._mid=mid;
   popup._input=input; popup._prev=prevVal; popup._new=newVal;
 }
+
+// blur 시 처리 (포커스 벗어날 때)
+function confirmPrice(input, pid, type, gid, mid){
+  // 팝업이 열려있으면 blur 무시 (팝업 버튼 클릭 처리)
+  const popup = document.getElementById('price-confirm-popup');
+  if(popup.style.display==='flex') return;
+
+  const newVal = parseFloat(input.value)||0;
+  const prevVal = parseFloat(input.dataset.prev)||0;
+  if(newVal === prevVal) return;
+
+  const hadVal = input.dataset.hadval === '1';
+  if(!hadVal){
+    // 최초 입력: 바로 저장
+    upC(pid, type, gid, mid, newVal);
+  } else {
+    // 수정: 팝업
+    showPricePopup(input, pid, type, gid, mid, prevVal, newVal);
+  }
+}
 function pcConfirm(){
   const pop=document.getElementById('price-confirm-popup');
   upC(pop._pid,pop._type,pop._gid,pop._mid,pop._new);
+  // input 상태 업데이트
+  if(pop._input){ pop._input.dataset.prev=String(pop._new); pop._input.dataset.hadval='1'; }
   pop.style.display='none';
+  // 다음 칸으로 이동
+  if(pop._input) movePriceNext(pop._input,pop._pid,pop._type,pop._gid,pop._mid);
 }
 function pcCancel(){
   const pop=document.getElementById('price-confirm-popup');
-  pop._input.value=pop._prev;
+  if(pop._input) pop._input.value=pop._prev;
   pop.style.display='none';
+  if(pop._input) pop._input.focus();
 }
 
 // ── DRAG & DROP ──
